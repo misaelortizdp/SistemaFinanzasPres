@@ -25,19 +25,41 @@
             </Grid>
 
             <Border Style="{StaticResource Card}">
-                <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="6">
+                <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="6">
                     <Label Grid.Row="0" Grid.Column="0" Text="💰 Ingreso" Style="{StaticResource Muted}" />
                     <Label Grid.Row="0" Grid.Column="1" Text="💸 Gastado" Style="{StaticResource Muted}" />
                     <Label Grid.Row="1" Grid.Column="0" Text="{Binding Ingreso}" Style="{StaticResource H2}" />
                     <Label Grid.Row="1" Grid.Column="1" Text="{Binding TotalGastado}" Style="{StaticResource H2}" />
-                    <Label Grid.Row="2" Grid.Column="0" Text="✅ Disponible" Style="{StaticResource Muted}" />
-                    <Label Grid.Row="2" Grid.Column="1" Text="💰 Tasa Ahorro" Style="{StaticResource Muted}" />
-                    <Label Grid.Row="3" Grid.Column="0" Text="{Binding Disponible}" Style="{StaticResource H2}" />
-                    <Label Grid.Row="3" Grid.Column="1" Text="{Binding TasaAhorro}" Style="{StaticResource H2}" />
+                    <Label Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Text="{Binding IngresoSource}" Style="{StaticResource Muted}" FontSize="11" />
+                    <Label Grid.Row="3" Grid.Column="0" Text="✅ Disponible" Style="{StaticResource Muted}" />
+                    <Label Grid.Row="3" Grid.Column="1" Text="💰 Tasa Ahorro" Style="{StaticResource Muted}" />
+                    <Label Grid.Row="4" Grid.Column="0" Text="{Binding Disponible}" Style="{StaticResource H2}" />
+                    <Label Grid.Row="4" Grid.Column="1" Text="{Binding TasaAhorro}" Style="{StaticResource H2}" />
                 </Grid>
             </Border>
 
-            <Button Text="➕ Agregar gasto" Command="{Binding AddTransactionCommand}" />
+            <Border Style="{StaticResource Card}" IsVisible="{Binding ShowProjection}">
+                <VerticalStackLayout Spacing="6">
+                    <Label Text="🔮 Proyección fin de mes" Style="{StaticResource H2}" />
+                    <Label Text="{Binding ProjectionHeadline}" Style="{StaticResource Body}" FontAttributes="Bold"
+                           TextColor="{Binding ProjectionColor}" />
+                    <Label Text="{Binding DaysRemainingLabel}" Style="{StaticResource Muted}" />
+                    <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto" RowSpacing="2" Margin="0,4,0,0">
+                        <Label Grid.Row="0" Grid.Column="0" Text="Quema diaria" Style="{StaticResource Muted}" FontSize="11" />
+                        <Label Grid.Row="0" Grid.Column="1" Text="Permitida/día" Style="{StaticResource Muted}" FontSize="11" />
+                        <Label Grid.Row="0" Grid.Column="2" Text="Proyectado" Style="{StaticResource Muted}" FontSize="11" />
+                        <Label Grid.Row="1" Grid.Column="0" Text="{Binding BurnDaily}" Style="{StaticResource Body}" FontAttributes="Bold" />
+                        <Label Grid.Row="1" Grid.Column="1" Text="{Binding AllowedDaily}" Style="{StaticResource Body}" FontAttributes="Bold" TextColor="#10B981" />
+                        <Label Grid.Row="1" Grid.Column="2" Text="{Binding ProjectedSpend}" Style="{StaticResource Body}" FontAttributes="Bold" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                <Button Grid.Column="0" Text="➕ Gasto" Command="{Binding AddTransactionCommand}" />
+                <Button Grid.Column="1" Text="💵 Ingreso" Command="{Binding AddIncomeCommand}"
+                        BackgroundColor="#10B981" />
+            </Grid>
 
             <Label Text="📊 Análisis 50/30/20" Style="{StaticResource H2}" Margin="0,8,0,0" />
             <CollectionView ItemsSource="{Binding Pillars}">

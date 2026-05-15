@@ -22,10 +22,19 @@ public partial class DashboardViewModel : BaseViewModel
 
     [ObservableProperty] private string monthLabel = string.Empty;
     [ObservableProperty] private string ingreso = "$0";
+    [ObservableProperty] private string ingresoSource = "Fijo";
     [ObservableProperty] private string totalGastado = "$0";
     [ObservableProperty] private string disponible = "$0";
     [ObservableProperty] private string pctEjecutado = "0%";
     [ObservableProperty] private string tasaAhorro = "0%";
+
+    [ObservableProperty] private bool showProjection;
+    [ObservableProperty] private string projectionHeadline = string.Empty;
+    [ObservableProperty] private string projectedSpend = "$0";
+    [ObservableProperty] private string allowedDaily = "$0";
+    [ObservableProperty] private string burnDaily = "$0";
+    [ObservableProperty] private string daysRemainingLabel = string.Empty;
+    [ObservableProperty] private Color projectionColor = Colors.Gray;
 
     public ObservableCollection<PillarRow> Pillars { get; } = new();
     public ObservableCollection<CategoryRow> Categories { get; } = new();
@@ -41,11 +50,25 @@ public partial class DashboardViewModel : BaseViewModel
             var snap = await _budget.GetSnapshotAsync(_month.Year, _month.Month);
 
             Ingreso = snap.IngresoTotal.ToString("C0");
+            IngresoSource = snap.UsedTransactionalIncome ? "Ingresos registrados" : "Salario configurado";
             TotalGastado = snap.TotalSpent.ToString("C0");
-            Disponible = (snap.IngresoTotal - snap.TotalSpent).ToString("C0");
+            Disponible = (snap.IngresoDisponible - snap.TotalSpent).ToString("C0");
             PctEjecutado = (snap.IngresoTotal > 0 ? snap.TotalSpent / snap.IngresoTotal : 0m).ToString("P1");
             var ahorro = snap.Pillars.First(p => p.Pillar == Models.Pillar.Ahorro);
             TasaAhorro = (snap.IngresoTotal > 0 ? ahorro.Spent / snap.IngresoTotal : 0m).ToString("P1");
+
+            var proj = snap.Projection;
+            ShowProjection = proj.IsCurrentMonth && snap.IngresoDisponible > 0;
+            ProjectionHeadline = proj.Headline;
+            ProjectedSpend = proj.ProjectedSpend.ToString("C0");
+            AllowedDaily = proj.AllowedDaily.ToString("C0");
+            BurnDaily = proj.BurnRateDaily.ToString("C0");
+            DaysRemainingLabel = proj.IsCurrentMonth
+                ? $"Día {proj.DaysElapsed} de {proj.DaysInMonth} · Quedan {proj.DaysRemaining}"
+                : string.Empty;
+            ProjectionColor = proj.ProjectedSpend <= snap.IngresoDisponible
+                ? Color.FromArgb("#10B981")
+                : Color.FromArgb("#EF4444");
 
             Pillars.Clear();
             foreach (var p in snap.Pillars)
@@ -79,6 +102,10 @@ public partial class DashboardViewModel : BaseViewModel
     [RelayCommand]
     private async Task AddTransactionAsync()
         => await Shell.Current.GoToAsync(nameof(TransactionEditPage));
+
+    [RelayCommand]
+    private async Task AddIncomeAsync()
+        => await Shell.Current.GoToAsync(nameof(IncomeEditPage));
 }
 
 public record PillarRow(string Name, string Budgeted, string Spent, string Meta, string Pct, string Status);

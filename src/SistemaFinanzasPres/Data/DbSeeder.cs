@@ -8,6 +8,7 @@ public static class DbSeeder
     public static async Task EnsureCreatedAndSeedAsync(AppDbContext db)
     {
         await db.Database.EnsureCreatedAsync();
+        await EnsureNewTablesAsync(db);
 
         if (!await db.Categories.AnyAsync())
         {
@@ -91,5 +92,46 @@ public static class DbSeeder
             );
             await db.SaveChangesAsync();
         }
+    }
+
+    private static async Task EnsureNewTablesAsync(AppDbContext db)
+    {
+        await db.Database.ExecuteSqlRawAsync(@"
+            CREATE TABLE IF NOT EXISTS Incomes (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                Date TEXT NOT NULL,
+                Concept TEXT NOT NULL,
+                Amount REAL NOT NULL DEFAULT 0,
+                Source TEXT NOT NULL DEFAULT 'Salario',
+                AccountId INTEGER NULL,
+                Notes TEXT NULL,
+                IsRecurring INTEGER NOT NULL DEFAULT 0
+            );");
+
+        await db.Database.ExecuteSqlRawAsync(@"
+            CREATE TABLE IF NOT EXISTS Debts (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                Name TEXT NOT NULL,
+                OriginalAmount REAL NOT NULL DEFAULT 0,
+                CurrentBalance REAL NOT NULL DEFAULT 0,
+                InterestRate REAL NOT NULL DEFAULT 0,
+                MinPayment REAL NOT NULL DEFAULT 0,
+                DueDay INTEGER NOT NULL DEFAULT 1,
+                IsActive INTEGER NOT NULL DEFAULT 1,
+                CreatedAt TEXT NOT NULL,
+                Notes TEXT NULL
+            );");
+
+        await db.Database.ExecuteSqlRawAsync(@"
+            CREATE TABLE IF NOT EXISTS DebtPayments (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                DebtId INTEGER NOT NULL,
+                Date TEXT NOT NULL,
+                Amount REAL NOT NULL DEFAULT 0,
+                InterestPortion REAL NOT NULL DEFAULT 0,
+                PrincipalPortion REAL NOT NULL DEFAULT 0,
+                Notes TEXT NULL,
+                FOREIGN KEY (DebtId) REFERENCES Debts(Id) ON DELETE CASCADE
+            );");
     }
 }

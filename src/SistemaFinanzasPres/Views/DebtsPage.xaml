@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:SistemaFinanzasPres.ViewModels"
+             x:Class="SistemaFinanzasPres.Views.DebtsPage"
+             x:Name="pageRoot"
+             x:DataType="vm:DebtsViewModel"
+             Title="Deudas">
+
+    <RefreshView IsRefreshing="{Binding IsBusy}" Command="{Binding LoadCommand}">
+    <ScrollView>
+        <VerticalStackLayout Padding="14" Spacing="10">
+
+            <Border Style="{StaticResource Card}" BackgroundColor="#FEF2F2">
+                <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="4">
+                    <Label Grid.Row="0" Grid.Column="0" Text="💳 Deuda total" Style="{StaticResource Muted}" />
+                    <Label Grid.Row="0" Grid.Column="1" Text="📅 Pago mínimo mensual" Style="{StaticResource Muted}" />
+                    <Label Grid.Row="1" Grid.Column="0" Text="{Binding TotalLabel}" Style="{StaticResource H1}" TextColor="#B91C1C" />
+                    <Label Grid.Row="1" Grid.Column="1" Text="{Binding MinPaymentLabel}" Style="{StaticResource H2}" />
+                    <Label Grid.Row="2" Grid.Column="0" Text="📈 Tasa promedio ponderada" Style="{StaticResource Muted}" />
+                    <Label Grid.Row="2" Grid.Column="1" Text="🔢 Activas" Style="{StaticResource Muted}" />
+                    <Label Grid.Row="3" Grid.Column="0" Text="{Binding WeightedRateLabel}" Style="{StaticResource Body}" FontAttributes="Bold" />
+                    <Label Grid.Row="3" Grid.Column="1" Text="{Binding ActiveCount}" Style="{StaticResource Body}" FontAttributes="Bold" />
+                </Grid>
+            </Border>
+
+            <Button Text="➕ Agregar deuda" Command="{Binding AddCommand}" />
+
+            <Label Text="Tus deudas" Style="{StaticResource H2}" Margin="0,8,0,0" />
+            <CollectionView ItemsSource="{Binding Items}" SelectionMode="None">
+                <CollectionView.EmptyView>
+                    <Label Text="No tienes deudas registradas. ¡Excelente! 🎉" HorizontalTextAlignment="Center" Style="{StaticResource Muted}" Margin="0,20" />
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="vm:DebtRow">
+                        <SwipeView>
+                            <SwipeView.RightItems>
+                                <SwipeItems>
+                                    <SwipeItem Text="Pagar" BackgroundColor="#10B981"
+                                               Command="{Binding BindingContext.PayCommand, Source={x:Reference pageRoot}}"
+                                               CommandParameter="{Binding .}" />
+                                    <SwipeItem Text="Editar" BackgroundColor="#0F766E"
+                                               Command="{Binding BindingContext.EditCommand, Source={x:Reference pageRoot}}"
+                                               CommandParameter="{Binding .}" />
+                                    <SwipeItem Text="Eliminar" BackgroundColor="#EF4444"
+                                               Command="{Binding BindingContext.DeleteCommand, Source={x:Reference pageRoot}}"
+                                               CommandParameter="{Binding .}" />
+                                </SwipeItems>
+                            </SwipeView.RightItems>
+                            <Border Style="{StaticResource Card}" Margin="0,4">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer
+                                        Command="{Binding BindingContext.EditCommand, Source={x:Reference pageRoot}}"
+                                        CommandParameter="{Binding .}" />
+                                </Border.GestureRecognizers>
+                                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="2">
+                                    <Label Grid.Row="0" Grid.Column="0" Text="{Binding Name}" FontAttributes="Bold" Style="{StaticResource Body}" />
+                                    <Label Grid.Row="0" Grid.Column="1" Text="{Binding BalanceLabel}" FontAttributes="Bold" Style="{StaticResource Body}" TextColor="#B91C1C" />
+                                    <Label Grid.Row="1" Grid.Column="0" Style="{StaticResource Muted}">
+                                        <Label.Text>
+                                            <MultiBinding StringFormat="Tasa {0} · Pago min {1}">
+                                                <Binding Path="RateLabel" />
+                                                <Binding Path="MinPaymentLabel" />
+                                            </MultiBinding>
+                                        </Label.Text>
+                                    </Label>
+                                    <Label Grid.Row="1" Grid.Column="1" Style="{StaticResource Muted}">
+                                        <Label.Text>
+                                            <MultiBinding StringFormat="Vence día {0}">
+                                                <Binding Path="DueDay" />
+                                            </MultiBinding>
+                                        </Label.Text>
+                                    </Label>
+                                    <ProgressBar Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
+                                                 Progress="{Binding Progress}" ProgressColor="#10B981" />
+                                    <Label Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Text="{Binding StatusLabel}"
+                                           Style="{StaticResource Muted}" TextColor="#10B981" />
+                                </Grid>
+                            </Border>
+                        </SwipeView>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <Label Text="🧮 Simulador de pago" Style="{StaticResource H2}" Margin="0,12,0,0" />
+            <Border Style="{StaticResource Card}">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="Estrategia" Style="{StaticResource Muted}" />
+                    <Picker ItemsSource="{Binding StrategyOptions}" SelectedItem="{Binding SelectedStrategy}" />
+                    <Label Text="Aporte extra mensual" Style="{StaticResource Muted}" />
+                    <Entry Text="{Binding ExtraMonthlyText}" Keyboard="Numeric" Placeholder="0" />
+                    <Button Text="Simular" Command="{Binding SimulateCommand}" />
+                    <Label Text="{Binding SimulationSummary}" Style="{StaticResource Body}" Margin="0,8,0,0" />
+                    <CollectionView ItemsSource="{Binding PlanItems}" IsVisible="{Binding HasSimulation}">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="vm:PlanItemRow">
+                                <Grid ColumnDefinitions="*,Auto,Auto" Padding="0,4" ColumnSpacing="8">
+                                    <Label Grid.Column="0" Text="{Binding Name}" Style="{StaticResource Body}" />
+                                    <Label Grid.Column="1" Text="{Binding MonthsLabel}" Style="{StaticResource Muted}" />
+                                    <Label Grid.Column="2" Text="{Binding InterestLabel}" Style="{StaticResource Muted}" />
+                                </Grid>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </VerticalStackLayout>
+            </Border>
+
+        </VerticalStackLayout>
+    </ScrollView>
+    </RefreshView>
+</ContentPage>

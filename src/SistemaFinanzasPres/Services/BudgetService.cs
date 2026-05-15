@@ -24,16 +24,29 @@ public record PillarSummary(
     decimal MetaAmount,
     string Status);
 
+public record MonthProjection(
+    bool IsCurrentMonth,
+    int DaysElapsed,
+    int DaysRemaining,
+    int DaysInMonth,
+    decimal BurnRateDaily,
+    decimal ProjectedSpend,
+    decimal AllowedDaily,
+    decimal ProjectedSurplus,
+    string Headline);
+
 public record BudgetSnapshot(
     AppConfig Config,
     decimal IngresoTotal,
     decimal IngresoDisponible,
+    bool UsedTransactionalIncome,
     decimal TotalBudgeted,
     decimal TotalSpent,
     decimal TotalAvailable,
     decimal PercentExecuted,
     IReadOnlyList<CategoryStatus> Categories,
-    IReadOnlyList<PillarSummary> Pillars);
+    IReadOnlyList<PillarSummary> Pillars,
+    MonthProjection Projection);
 
 public class BudgetService
 {
@@ -62,6 +75,11 @@ public class BudgetService
             .Select(t => new { t.CategoryId, t.Amount })
             .ToListAsync(ct);
 
+        var incomesInMonth = await _db.Incomes.AsNoTracking()
+            .Where(i => i.Date >= start && i.Date < end)
+            .Select(i => i.Amount)
+            .ToListAsync(ct);
+
         var budgetByCat = budgets.ToDictionary(b => b.CategoryId, b => b.Amount);
         var spentByCat = txInMonth
             .GroupBy(t => t.CategoryId)
@@ -81,7 +99,10 @@ public class BudgetService
         }).ToList();
 
         var diezmoBudget = rows.Where(r => r.Pillar == Pillar.PrimerFruto).Sum(r => r.Budgeted);
-        var ingresoTotal = config.IngresoTotal;
+
+        var transactionalIncome = incomesInMonth.Sum();
+        var usedTransactional = transactionalIncome > 0;
+        var ingresoTotal = usedTransactional ? transactionalIncome : config.IngresoTotal;
         var ingresoDisponible = ingresoTotal - diezmoBudget;
 
         PillarSummary BuildPillar(Pillar p, decimal metaPct)
@@ -109,10 +130,53 @@ public class BudgetService
         var totalS = rows.Sum(r => r.Spent);
         var pctExec = totalB > 0 ? totalS / totalB : 0m;
 
+        var projection = BuildProjection(year, month, totalS, ingresoDisponible);
+
         return new BudgetSnapshot(
-            config, ingresoTotal, ingresoDisponible,
+            config, ingresoTotal, ingresoDisponible, usedTransactional,
             totalB, totalS, totalB - totalS, pctExec,
-            rows, pillars);
+            rows, pillars, projection);
+    }
+
+    private static MonthProjection BuildProjection(int year, int month, decimal totalSpent, decimal ingresoDisponible)
+    {
+        var today = DateTime.Today;
+        var daysInMonth = DateTime.DaysInMonth(year, month);
+        var monthStart = new DateTime(year, month, 1);
+        var monthEnd = monthStart.AddDays(daysInMonth - 1);
+
+        var isCurrent = today >= monthStart && today <= monthEnd;
+        var isPast = today > monthEnd;
+
+        int daysElapsed;
+        int daysRemaining;
+        if (isCurrent) { daysElapsed = today.Day; daysRemaining = daysInMonth - today.Day; }
+        else if (isPast) { daysElapsed = daysInMonth; daysRemaining = 0; }
+        else { daysElapsed = 0; daysRemaining = daysInMonth; }
+
+        var burnDaily = daysElapsed > 0 ? totalSpent / daysElapsed : 0m;
+        var projectedSpend = isCurrent ? burnDaily * daysInMonth : totalSpent;
+        var remainingBudget = ingresoDisponible - totalSpent;
+        var allowedDaily = daysRemaining > 0 ? Math.Max(0m, remainingBudget / daysRemaining) : 0m;
+        var projectedSurplus = ingresoDisponible - projectedSpend;
+
+        string headline;
+        if (!isCurrent && !isPast)
+            headline = "Mes futuro — sin proyección aún.";
+        else if (isPast)
+            headline = totalSpent <= ingresoDisponible
+                ? $"Cerró con superávit de {(ingresoDisponible - totalSpent):C0}."
+                : $"Cerró con déficit de {(totalSpent - ingresoDisponible):C0}.";
+        else if (ingresoDisponible <= 0)
+            headline = "Define tu ingreso para ver proyección.";
+        else if (projectedSpend <= ingresoDisponible)
+            headline = $"A este ritmo cerrarás con {(ingresoDisponible - projectedSpend):C0} de sobrante.";
+        else
+            headline = $"⚠️ A este ritmo te faltarán {(projectedSpend - ingresoDisponible):C0} este mes.";
+
+        return new MonthProjection(
+            isCurrent, daysElapsed, daysRemaining, daysInMonth,
+            burnDaily, projectedSpend, allowedDaily, projectedSurplus, headline);
     }
 
     public async Task UpsertBudgetAsync(int categoryId, int year, int month, decimal amount)

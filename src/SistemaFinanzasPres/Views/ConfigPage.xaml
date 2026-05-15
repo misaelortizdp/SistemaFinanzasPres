@@ -60,6 +60,10 @@
             <Button Text="Guardar configuración" Command="{Binding SaveCommand}" />
 
             <Label Text="Administrar" Style="{StaticResource H2}" Margin="0,8,0,0" />
+            <Button Text="💵 Ingresos del mes" Command="{Binding GoToIncomesCommand}"
+                    HorizontalOptions="Fill" BackgroundColor="#10B981" />
+            <Button Text="💳 Deudas" Command="{Binding GoToDebtsCommand}"
+                    HorizontalOptions="Fill" BackgroundColor="#B91C1C" />
             <Button Text="🗂 Categorías" Command="{Binding GoToCategoriesCommand}"
                     HorizontalOptions="Fill" />
             <Button Text="🏦 Cuentas" Command="{Binding GoToAccountsCommand}"

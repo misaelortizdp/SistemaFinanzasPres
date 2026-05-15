@@ -11,6 +11,9 @@ public class AppDbContext : DbContext
     public DbSet<Account> Accounts => Set<Account>();
     public DbSet<AppConfig> AppConfigs => Set<AppConfig>();
     public DbSet<SavingsGoal> SavingsGoals => Set<SavingsGoal>();
+    public DbSet<Income> Incomes => Set<Income>();
+    public DbSet<Debt> Debts => Set<Debt>();
+    public DbSet<DebtPayment> DebtPayments => Set<DebtPayment>();
 
     public static string DbPath =>
         Path.Combine(FileSystem.AppDataDirectory, "finanzas.db3");
@@ -28,17 +31,9 @@ public class AppDbContext : DbContext
             .HasIndex(x => new { x.CategoryId, x.Year, x.Month })
             .IsUnique();
 
-        b.Entity<BudgetItem>()
-            .Property(x => x.Amount)
-            .HasConversion<double>();
-
-        b.Entity<Transaction>()
-            .Property(x => x.Amount)
-            .HasConversion<double>();
-
-        b.Entity<Account>()
-            .Property(x => x.Balance)
-            .HasConversion<double>();
+        b.Entity<BudgetItem>().Property(x => x.Amount).HasConversion<double>();
+        b.Entity<Transaction>().Property(x => x.Amount).HasConversion<double>();
+        b.Entity<Account>().Property(x => x.Balance).HasConversion<double>();
 
         b.Entity<AppConfig>().Property(x => x.SalarioNeto).HasConversion<double>();
         b.Entity<AppConfig>().Property(x => x.OtrosIngresos).HasConversion<double>();
@@ -50,5 +45,21 @@ public class AppDbContext : DbContext
 
         b.Entity<SavingsGoal>().Property(x => x.Target).HasConversion<double>();
         b.Entity<SavingsGoal>().Property(x => x.Achieved).HasConversion<double>();
+
+        b.Entity<Income>().Property(x => x.Amount).HasConversion<double>();
+
+        b.Entity<Debt>().Property(x => x.OriginalAmount).HasConversion<double>();
+        b.Entity<Debt>().Property(x => x.CurrentBalance).HasConversion<double>();
+        b.Entity<Debt>().Property(x => x.InterestRate).HasConversion<double>();
+        b.Entity<Debt>().Property(x => x.MinPayment).HasConversion<double>();
+
+        b.Entity<DebtPayment>().Property(x => x.Amount).HasConversion<double>();
+        b.Entity<DebtPayment>().Property(x => x.InterestPortion).HasConversion<double>();
+        b.Entity<DebtPayment>().Property(x => x.PrincipalPortion).HasConversion<double>();
+        b.Entity<DebtPayment>()
+            .HasOne(p => p.Debt)
+            .WithMany()
+            .HasForeignKey(p => p.DebtId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }
