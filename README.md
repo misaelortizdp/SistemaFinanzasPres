@@ -1,8 +1,8 @@
 # SistemaFinanzasPres
 
-App de **finanzas personales multiplataforma** (Android, iOS, Windows, macOS) basada
-en el framework **50/30/20** + un "Primer Fruto" (diezmo/donación) opcional
-pre-descontado del ingreso.
+App de **finanzas personales multiplataforma** (Android + Windows) basada en el
+framework **50/30/20** + un "Primer Fruto" (diezmo/donación) opcional pre-descontado
+del ingreso. iOS/macOS son agregables después si llegas a tener un Mac.
 
 Stack:
 - **.NET 9 + .NET MAUI** (un solo código C#/XAML para móvil y escritorio)
@@ -33,7 +33,6 @@ defines tú desde la app.
   dotnet workload install maui
   ```
 - Android: Android SDK 24+ (lo instala Visual Studio o `dotnet workload`).
-- iOS / macOS: macOS con Xcode.
 - Windows: Visual Studio 2022 con cargas "Desarrollo de .NET Multi-platform App UI" + "Desarrollo de escritorio para Windows".
 
 ### Restaurar y compilar
@@ -62,7 +61,7 @@ src/SistemaFinanzasPres/
   Views/         XAML por pantalla
   Converters/    Status→Color, Pillar→Color
   Resources/     Colores, Estilos, App icon, Splash
-  Platforms/     Android, iOS, MacCatalyst, Windows
+  Platforms/     Android, Windows
 ```
 
 La base de datos se crea en `FileSystem.AppDataDirectory/finanzas.db3` la primera vez que se inicia la app.
