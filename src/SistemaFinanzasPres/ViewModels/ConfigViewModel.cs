@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.EntityFrameworkCore;
 using SistemaFinanzasPres.Data;
 using SistemaFinanzasPres.Models;
+using SistemaFinanzasPres.Views;
 
 namespace SistemaFinanzasPres.ViewModels;
 
@@ -68,6 +69,14 @@ public partial class ConfigViewModel : BaseViewModel
         catch { }
         IngresoDisponible = (sal + otr - diezmoBudget).ToString("C0");
     }
+
+    [RelayCommand]
+    private async Task GoToCategoriesAsync()
+        => await Shell.Current.GoToAsync(nameof(CategoriesPage));
+
+    [RelayCommand]
+    private async Task GoToAccountsAsync()
+        => await Shell.Current.GoToAsync(nameof(AccountsPage));
 
     [RelayCommand]
     private async Task SaveAsync()

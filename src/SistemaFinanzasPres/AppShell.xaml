@@ -4,7 +4,7 @@
        xmlns:views="clr-namespace:SistemaFinanzasPres.Views"
        x:Class="SistemaFinanzasPres.AppShell"
        Title="Finanzas Personales"
-       FlyoutBehavior="Flyout">
+       FlyoutBehavior="Disabled">
 
     <TabBar>
         <ShellContent Title="Dashboard" Icon="dashboard.png"
@@ -18,12 +18,5 @@
         <ShellContent Title="Más" Icon="more.png"
                       ContentTemplate="{DataTemplate views:ConfigPage}" Route="config" />
     </TabBar>
-
-    <FlyoutItem Title="Categorías" Icon="categories.png">
-        <ShellContent ContentTemplate="{DataTemplate views:CategoriesPage}" Route="categories" />
-    </FlyoutItem>
-    <FlyoutItem Title="Cuentas" Icon="accounts.png">
-        <ShellContent ContentTemplate="{DataTemplate views:AccountsPage}" Route="accounts" />
-    </FlyoutItem>
 
 </Shell>
