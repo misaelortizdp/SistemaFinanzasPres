@@ -3,7 +3,9 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:SistemaFinanzasPres.ViewModels"
              xmlns:conv="clr-namespace:SistemaFinanzasPres.Converters"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
              x:Class="SistemaFinanzasPres.Views.BudgetPage"
+             x:Name="pageRoot"
              x:DataType="vm:BudgetViewModel"
              Title="Presupuesto">
 
@@ -14,24 +16,55 @@
         </ResourceDictionary>
     </ContentPage.Resources>
 
-    <Grid RowDefinitions="Auto,*,Auto" Padding="14" RowSpacing="8">
+    <Grid RowDefinitions="Auto,Auto,*,Auto" Padding="14" RowSpacing="8">
         <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto">
             <Button Grid.Column="0" Text="◀" Command="{Binding PrevMonthCommand}" WidthRequest="48" />
             <Label Grid.Column="1" Text="{Binding MonthLabel}" Style="{StaticResource H2}" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
             <Button Grid.Column="2" Text="▶" Command="{Binding NextMonthCommand}" WidthRequest="48" />
         </Grid>
 
-        <RefreshView Grid.Row="1" IsRefreshing="{Binding IsBusy}" Command="{Binding LoadCommand}">
+        <Border Grid.Row="1" Style="{StaticResource Card}" BackgroundColor="{Binding SummaryBgColor}">
+            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                <VerticalStackLayout Grid.Column="0">
+                    <Label Text="Ingreso disp." Style="{StaticResource Muted}" FontSize="11" />
+                    <Label Text="{Binding IngresoLabel}" Style="{StaticResource Body}" FontAttributes="Bold" />
+                </VerticalStackLayout>
+                <VerticalStackLayout Grid.Column="1">
+                    <Label Text="Presupuestado" Style="{StaticResource Muted}" FontSize="11" />
+                    <Label Text="{Binding TotalPresupuestado}" Style="{StaticResource Body}" FontAttributes="Bold" />
+                </VerticalStackLayout>
+                <VerticalStackLayout Grid.Column="2">
+                    <Label Text="Diferencia" Style="{StaticResource Muted}" FontSize="11" />
+                    <Label Text="{Binding DiferenciaLabel}" Style="{StaticResource Body}" FontAttributes="Bold"
+                           TextColor="{Binding DiferenciaColor}" />
+                </VerticalStackLayout>
+            </Grid>
+        </Border>
+
+        <RefreshView Grid.Row="2" IsRefreshing="{Binding IsBusy}" Command="{Binding LoadCommand}">
             <CollectionView ItemsSource="{Binding Rows}" SelectionMode="None">
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="vm:BudgetRow">
                         <Border Style="{StaticResource Card}" Margin="0,4"
                                 BackgroundColor="{Binding Pillar, Converter={StaticResource PillarColor}}">
-                            <Grid ColumnDefinitions="*,140" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8">
-                                <Label Grid.Row="0" Grid.Column="0" Text="{Binding Name}" FontAttributes="Bold" Style="{StaticResource Body}" />
-                                <Label Grid.Row="0" Grid.Column="1" Text="{Binding Pillar}" HorizontalTextAlignment="End" Style="{StaticResource Muted}" />
+                            <Grid ColumnDefinitions="*,130" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="2">
+                                <Grid Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
+                                      ColumnDefinitions="*,Auto,Auto">
+                                    <Label Grid.Column="0" Text="{Binding Name}" FontAttributes="Bold" Style="{StaticResource Body}" />
+                                    <Label Grid.Column="1" Text="✓ guardado" TextColor="#10B981" FontSize="11"
+                                           IsVisible="{Binding IsJustSaved}" VerticalTextAlignment="Center" />
+                                    <Label Grid.Column="2" Text="{Binding Pillar}" Style="{StaticResource Muted}" />
+                                </Grid>
                                 <Label Grid.Row="1" Grid.Column="0" Text="Presupuesto:" Style="{StaticResource Muted}" VerticalTextAlignment="Center" />
-                                <Entry Grid.Row="1" Grid.Column="1" Text="{Binding BudgetedText}" Keyboard="Numeric" />
+                                <Entry Grid.Row="1" Grid.Column="1" Text="{Binding BudgetedText}" Keyboard="Numeric"
+                                       Placeholder="0" HorizontalTextAlignment="End">
+                                    <Entry.Behaviors>
+                                        <toolkit:EventToCommandBehavior
+                                            EventName="Completed"
+                                            Command="{Binding BindingContext.SaveRowCommand, Source={x:Reference pageRoot}}"
+                                            CommandParameter="{Binding .}" />
+                                    </Entry.Behaviors>
+                                </Entry>
                                 <Label Grid.Row="2" Grid.Column="0" Style="{StaticResource Muted}">
                                     <Label.Text>
                                         <MultiBinding StringFormat="Gast {0}  ·  Disp {1}  ·  {2}">
@@ -51,9 +84,9 @@
             </CollectionView>
         </RefreshView>
 
-        <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="8">
+        <Grid Grid.Row="3" ColumnDefinitions="*,*" ColumnSpacing="8">
             <Button Grid.Column="0" Text="Copiar mes anterior" Style="{StaticResource ButtonGhost}" Command="{Binding CopyPrevCommand}" />
-            <Button Grid.Column="1" Text="Guardar" Command="{Binding SaveCommand}" />
+            <Button Grid.Column="1" Text="Guardar todo" Command="{Binding SaveCommand}" />
         </Grid>
     </Grid>
 </ContentPage>

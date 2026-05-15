@@ -25,6 +25,12 @@ public partial class ConfigViewModel : BaseViewModel
     [ObservableProperty] private string metaDesText = "30";
     [ObservableProperty] private string metaAhoText = "20";
 
+    [ObservableProperty] private string metaNecAmount = "$0";
+    [ObservableProperty] private string metaDesAmount = "$0";
+    [ObservableProperty] private string metaAhoAmount = "$0";
+    [ObservableProperty] private string sumaMetasLabel = "Suma: 100%";
+    [ObservableProperty] private Color sumaMetasColor = Color.FromArgb("#10B981");
+
     [ObservableProperty] private int fondoMeses = 4;
     [ObservableProperty] private string ahorroMinPctText = "20";
     [ObservableProperty] private string ahorroOptPctText = "30";
@@ -46,6 +52,9 @@ public partial class ConfigViewModel : BaseViewModel
 
     partial void OnSalarioTextChanged(string value) => RecalcLabels();
     partial void OnOtrosTextChanged(string value) => RecalcLabels();
+    partial void OnMetaNecTextChanged(string value) => RecalcLabels();
+    partial void OnMetaDesTextChanged(string value) => RecalcLabels();
+    partial void OnMetaAhoTextChanged(string value) => RecalcLabels();
 
     private async void RecalcLabels()
     {
@@ -67,7 +76,18 @@ public partial class ConfigViewModel : BaseViewModel
             }
         }
         catch { }
-        IngresoDisponible = (sal + otr - diezmoBudget).ToString("C0");
+        var disp = sal + otr - diezmoBudget;
+        IngresoDisponible = disp.ToString("C0");
+
+        decimal.TryParse(MetaNecText, out var pnec);
+        decimal.TryParse(MetaDesText, out var pdes);
+        decimal.TryParse(MetaAhoText, out var paho);
+        MetaNecAmount = (disp * pnec / 100m).ToString("C0");
+        MetaDesAmount = (disp * pdes / 100m).ToString("C0");
+        MetaAhoAmount = (disp * paho / 100m).ToString("C0");
+        var suma = pnec + pdes + paho;
+        SumaMetasLabel = $"Suma: {suma}% {(suma == 100m ? "✅" : suma < 100m ? "— faltan " + (100 - suma) + "%" : "⚠️ excede 100%")}";
+        SumaMetasColor = suma == 100m ? Color.FromArgb("#10B981") : Color.FromArgb("#EF4444");
     }
 
     [RelayCommand]

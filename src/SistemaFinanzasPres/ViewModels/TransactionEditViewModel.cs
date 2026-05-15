@@ -17,7 +17,8 @@ public partial class TransactionEditViewModel : BaseViewModel
         Title = "Nuevo gasto";
     }
 
-    [ObservableProperty] private int? id;
+    [ObservableProperty] private int id;
+    [ObservableProperty] private bool isExisting;
     [ObservableProperty] private DateTime date = DateTime.Today;
     [ObservableProperty] private string concept = string.Empty;
     [ObservableProperty] private string amountText = string.Empty;
@@ -28,36 +29,48 @@ public partial class TransactionEditViewModel : BaseViewModel
     public ObservableCollection<Category> Categories { get; } = new();
     public ObservableCollection<Account> Accounts { get; } = new();
 
-    partial void OnIdChanged(int? value) => _ = LoadAsync();
-
     [RelayCommand]
     public async Task LoadAsync()
     {
-        if (Categories.Count == 0)
+        if (IsBusy) return;
+        try
         {
-            var cats = await _db.Categories.AsNoTracking().OrderBy(c => c.SortOrder).ToListAsync();
-            foreach (var c in cats) Categories.Add(c);
-        }
-        if (Accounts.Count == 0)
-        {
-            var accs = await _db.Accounts.AsNoTracking().OrderBy(a => a.SortOrder).ToListAsync();
-            foreach (var a in accs) Accounts.Add(a);
-        }
+            IsBusy = true;
 
-        if (Id is int idVal && idVal > 0)
-        {
-            var t = await _db.Transactions.AsNoTracking().FirstOrDefaultAsync(x => x.Id == idVal);
-            if (t != null)
+            if (Categories.Count == 0)
             {
-                Title = "Editar gasto";
-                Date = t.Date;
-                Concept = t.Concept;
-                AmountText = t.Amount.ToString("N0");
-                SelectedCategory = Categories.FirstOrDefault(c => c.Id == t.CategoryId);
-                SelectedAccount = Accounts.FirstOrDefault(a => a.Id == t.AccountId);
-                Notes = t.Notes;
+                var cats = await _db.Categories.AsNoTracking()
+                    .Where(c => c.IsActive)
+                    .OrderBy(c => c.SortOrder)
+                    .ToListAsync();
+                foreach (var c in cats) Categories.Add(c);
+            }
+            if (Accounts.Count == 0)
+            {
+                var accs = await _db.Accounts.AsNoTracking()
+                    .Where(a => a.IsActive)
+                    .OrderBy(a => a.SortOrder)
+                    .ToListAsync();
+                foreach (var a in accs) Accounts.Add(a);
+            }
+
+            if (Id > 0)
+            {
+                var t = await _db.Transactions.AsNoTracking().FirstOrDefaultAsync(x => x.Id == Id);
+                if (t != null)
+                {
+                    IsExisting = true;
+                    Title = "Editar gasto";
+                    Date = t.Date;
+                    Concept = t.Concept;
+                    AmountText = t.Amount.ToString("N0");
+                    Notes = t.Notes;
+                    SelectedCategory = Categories.FirstOrDefault(c => c.Id == t.CategoryId);
+                    SelectedAccount = Accounts.FirstOrDefault(a => a.Id == t.AccountId);
+                }
             }
         }
+        finally { IsBusy = false; }
     }
 
     [RelayCommand]
@@ -74,9 +87,9 @@ public partial class TransactionEditViewModel : BaseViewModel
             return;
         }
 
-        if (Id is int idVal && idVal > 0)
+        if (Id > 0)
         {
-            var t = await _db.Transactions.FirstOrDefaultAsync(x => x.Id == idVal);
+            var t = await _db.Transactions.FirstOrDefaultAsync(x => x.Id == Id);
             if (t == null) return;
             t.Date = Date;
             t.Concept = Concept ?? string.Empty;
@@ -98,6 +111,17 @@ public partial class TransactionEditViewModel : BaseViewModel
             });
         }
         await _db.SaveChangesAsync();
+        await Shell.Current.GoToAsync("..");
+    }
+
+    [RelayCommand]
+    private async Task DeleteAsync()
+    {
+        if (Id <= 0) return;
+        var ok = await Shell.Current.DisplayAlert("Eliminar", "¿Eliminar este gasto?", "Sí", "No");
+        if (!ok) return;
+        var t = await _db.Transactions.FindAsync(Id);
+        if (t != null) { _db.Transactions.Remove(t); await _db.SaveChangesAsync(); }
         await Shell.Current.GoToAsync("..");
     }
 

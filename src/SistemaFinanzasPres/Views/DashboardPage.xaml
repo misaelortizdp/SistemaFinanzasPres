@@ -55,11 +55,6 @@
                 </VerticalStackLayout>
             </Border>
 
-            <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
-                <Button Grid.Column="0" Text="➕ Gasto" Command="{Binding AddTransactionCommand}" />
-                <Button Grid.Column="1" Text="💵 Ingreso" Command="{Binding AddIncomeCommand}"
-                        BackgroundColor="#10B981" />
-            </Grid>
 
             <Label Text="📊 Análisis 50/30/20" Style="{StaticResource H2}" Margin="0,8,0,0" />
             <CollectionView ItemsSource="{Binding Pillars}">
@@ -98,7 +93,7 @@
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="vm:CategoryRow">
                         <Border Style="{StaticResource Card}" Margin="0,4">
-                            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8">
+                            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="2">
                                 <Label Grid.Row="0" Grid.Column="0" Text="{Binding Name}" Style="{StaticResource Body}" FontAttributes="Bold" />
                                 <Label Grid.Row="0" Grid.Column="1" Text="{Binding Pillar}" Style="{StaticResource Muted}" />
                                 <Label Grid.Row="1" Grid.Column="0" Style="{StaticResource Muted}">
@@ -110,7 +105,11 @@
                                         </MultiBinding>
                                     </Label.Text>
                                 </Label>
-                                <Label Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Text="{Binding Status}"
+                                <Label Grid.Row="1" Grid.Column="1" Text="{Binding ProgressLabel}" Style="{StaticResource Muted}" HorizontalTextAlignment="End" />
+                                <ProgressBar Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
+                                             Progress="{Binding Progress}"
+                                             ProgressColor="{Binding Status, Converter={StaticResource StatusColor}}" />
+                                <Label Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Text="{Binding Status}"
                                        FontAttributes="Bold"
                                        TextColor="{Binding Status, Converter={StaticResource StatusColor}}" />
                             </Grid>

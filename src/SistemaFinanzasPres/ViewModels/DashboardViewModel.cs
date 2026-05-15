@@ -85,12 +85,15 @@ public partial class DashboardViewModel : BaseViewModel
             Categories.Clear();
             foreach (var c in snap.Categories.OrderBy(c => c.Pillar).ThenBy(c => c.CategoryName))
             {
+                var progress = (double)Math.Min(1m, c.Budgeted > 0 ? c.Spent / c.Budgeted : 0m);
                 Categories.Add(new CategoryRow(
                     c.CategoryName, c.Pillar.Short(),
                     c.Budgeted.ToString("C0"),
                     c.Spent.ToString("C0"),
                     c.Available.ToString("C0"),
-                    c.Status));
+                    c.Status,
+                    progress,
+                    c.Percent.ToString("P0")));
             }
         }
         finally { IsBusy = false; }
@@ -98,15 +101,7 @@ public partial class DashboardViewModel : BaseViewModel
 
     [RelayCommand] private void PrevMonth() => _month.Shift(-1);
     [RelayCommand] private void NextMonth() => _month.Shift(1);
-
-    [RelayCommand]
-    private async Task AddTransactionAsync()
-        => await Shell.Current.GoToAsync(nameof(TransactionEditPage));
-
-    [RelayCommand]
-    private async Task AddIncomeAsync()
-        => await Shell.Current.GoToAsync(nameof(IncomeEditPage));
 }
 
 public record PillarRow(string Name, string Budgeted, string Spent, string Meta, string Pct, string Status);
-public record CategoryRow(string Name, string Pillar, string Budgeted, string Spent, string Available, string Status);
+public record CategoryRow(string Name, string Pillar, string Budgeted, string Spent, string Available, string Status, double Progress, string ProgressLabel);

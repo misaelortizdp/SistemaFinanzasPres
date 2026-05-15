@@ -26,9 +26,11 @@
             <Label Text="Notas" Style="{StaticResource Muted}" />
             <Editor Text="{Binding Notes}" HeightRequest="80" />
 
-            <Grid ColumnDefinitions="*,*" ColumnSpacing="8" Margin="0,8,0,0">
+            <Grid ColumnDefinitions="*,*,Auto" ColumnSpacing="8" Margin="0,8,0,0">
                 <Button Grid.Column="0" Text="Cancelar" Style="{StaticResource ButtonGhost}" Command="{Binding CancelCommand}" />
                 <Button Grid.Column="1" Text="Guardar" Command="{Binding SaveCommand}" />
+                <Button Grid.Column="2" Text="🗑" BackgroundColor="#EF4444" Command="{Binding DeleteCommand}"
+                        IsVisible="{Binding IsExisting}" WidthRequest="48" />
             </Grid>
         </VerticalStackLayout>
     </ScrollView>

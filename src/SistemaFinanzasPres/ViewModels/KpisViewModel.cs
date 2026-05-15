@@ -24,6 +24,7 @@ public partial class KpisViewModel : BaseViewModel
     [ObservableProperty] private string metaFondo = "$0";
     [ObservableProperty] private string acumuladoFondo = "$0";
     [ObservableProperty] private string avanceFondo = "0%";
+    [ObservableProperty] private double avanceFondoProgress;
     [ObservableProperty] private string statusFondo = "—";
     [ObservableProperty] private int mesesFondo;
 
@@ -44,6 +45,7 @@ public partial class KpisViewModel : BaseViewModel
             MetaFondo = fondo.Meta.ToString("C0");
             AcumuladoFondo = fondo.Acumulado.ToString("C0");
             AvanceFondo = fondo.Avance.ToString("P1");
+            AvanceFondoProgress = (double)Math.Min(1m, fondo.Avance);
             StatusFondo = fondo.Status;
         }
         finally { IsBusy = false; }

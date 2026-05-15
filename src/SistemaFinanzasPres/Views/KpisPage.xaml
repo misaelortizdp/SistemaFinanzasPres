@@ -16,7 +16,7 @@
 
     <RefreshView IsRefreshing="{Binding IsBusy}" Command="{Binding LoadCommand}">
     <ScrollView>
-        <VerticalStackLayout Padding="14" Spacing="12">
+        <VerticalStackLayout Padding="14" Spacing="10">
             <Grid ColumnDefinitions="Auto,*,Auto">
                 <Button Grid.Column="0" Text="◀" Command="{Binding PrevMonthCommand}" WidthRequest="48" />
                 <Label Grid.Column="1" Text="{Binding MonthLabel}" Style="{StaticResource H2}" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
@@ -27,7 +27,7 @@
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="svc:KpiRow">
                         <Border Style="{StaticResource Card}" Margin="0,4">
-                            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8">
+                            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="2">
                                 <Label Grid.Row="0" Grid.Column="0" Text="{Binding Name}" Style="{StaticResource H2}" />
                                 <Label Grid.Row="0" Grid.Column="1" Text="{Binding Status}" FontAttributes="Bold"
                                        TextColor="{Binding Status, Converter={StaticResource StatusColor}}" />
@@ -39,7 +39,10 @@
                                         </MultiBinding>
                                     </Label.Text>
                                 </Label>
-                                <Label Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Text="{Binding Hint}" Style="{StaticResource Muted}" />
+                                <ProgressBar Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
+                                             Progress="{Binding Progress}"
+                                             ProgressColor="{Binding Status, Converter={StaticResource StatusColor}}" />
+                                <Label Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Text="{Binding Hint}" Style="{StaticResource Muted}" />
                             </Grid>
                         </Border>
                     </DataTemplate>
@@ -48,32 +51,33 @@
 
             <Label Text="🏦 Fondo de Emergencia" Style="{StaticResource H2}" Margin="0,8,0,0" />
             <Border Style="{StaticResource Card}">
-                <VerticalStackLayout Spacing="6">
-                    <Label>
-                        <Label.Text>
-                            <MultiBinding StringFormat="Gastos fijos mensuales (Necesidades): {0}">
-                                <Binding Path="GastosFijos" />
-                            </MultiBinding>
-                        </Label.Text>
-                    </Label>
-                    <Label>
-                        <Label.Text>
-                            <MultiBinding StringFormat="Meta ({0} meses): {1}">
-                                <Binding Path="MesesFondo" />
-                                <Binding Path="MetaFondo" />
-                            </MultiBinding>
-                        </Label.Text>
-                    </Label>
-                    <Label>
-                        <Label.Text>
-                            <MultiBinding StringFormat="Acumulado: {0}  ·  Avance: {1}">
-                                <Binding Path="AcumuladoFondo" />
-                                <Binding Path="AvanceFondo" />
-                            </MultiBinding>
-                        </Label.Text>
-                    </Label>
-                    <Label Text="{Binding StatusFondo}" FontAttributes="Bold"
-                           TextColor="{Binding StatusFondo, Converter={StaticResource StatusColor}}" />
+                <VerticalStackLayout Spacing="8">
+                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" RowSpacing="4">
+                        <Label Grid.Row="0" Grid.Column="0" Text="Meta del fondo" Style="{StaticResource Muted}" />
+                        <Label Grid.Row="0" Grid.Column="1" Text="{Binding MetaFondo}" Style="{StaticResource Body}" FontAttributes="Bold" />
+                        <Label Grid.Row="1" Grid.Column="0" Style="{StaticResource Muted}">
+                            <Label.Text>
+                                <MultiBinding StringFormat="{}{0} meses × gastos fijos {1}">
+                                    <Binding Path="MesesFondo" />
+                                    <Binding Path="GastosFijos" />
+                                </MultiBinding>
+                            </Label.Text>
+                        </Label>
+                    </Grid>
+                    <ProgressBar Progress="{Binding AvanceFondoProgress}"
+                                 ProgressColor="#10B981" />
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label Grid.Column="0" Style="{StaticResource Body}">
+                            <Label.Text>
+                                <MultiBinding StringFormat="Acumulado: {0} ({1})">
+                                    <Binding Path="AcumuladoFondo" />
+                                    <Binding Path="AvanceFondo" />
+                                </MultiBinding>
+                            </Label.Text>
+                        </Label>
+                        <Label Grid.Column="1" Text="{Binding StatusFondo}" FontAttributes="Bold"
+                               TextColor="{Binding StatusFondo, Converter={StaticResource StatusColor}}" />
+                    </Grid>
                 </VerticalStackLayout>
             </Border>
         </VerticalStackLayout>
