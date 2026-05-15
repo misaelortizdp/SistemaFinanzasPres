@@ -59,14 +59,15 @@
 
             <Button Text="Guardar configuración" Command="{Binding SaveCommand}" />
 
-            <Label Text="Más" Style="{StaticResource H2}" Margin="0,8,0,0" />
-            <Border Style="{StaticResource Card}">
-                <VerticalStackLayout Spacing="6">
-                    <Label Text="• Gestiona categorías y cuentas desde el menú lateral." Style="{StaticResource Muted}" />
-                    <Label Text="• Cambia de mes con las flechas en cada pantalla." Style="{StaticResource Muted}" />
-                    <Label Text="• Los porcentajes 50/30/20 son sobre el ingreso sin diezmo." Style="{StaticResource Muted}" />
-                </VerticalStackLayout>
-            </Border>
+            <Label Text="Administrar" Style="{StaticResource H2}" Margin="0,8,0,0" />
+            <Button Text="💵 Ingresos del mes" Command="{Binding GoToIncomesCommand}"
+                    HorizontalOptions="Fill" BackgroundColor="#10B981" />
+            <Button Text="💳 Deudas" Command="{Binding GoToDebtsCommand}"
+                    HorizontalOptions="Fill" BackgroundColor="#B91C1C" />
+            <Button Text="🗂 Categorías" Command="{Binding GoToCategoriesCommand}"
+                    HorizontalOptions="Fill" />
+            <Button Text="🏦 Cuentas" Command="{Binding GoToAccountsCommand}"
+                    HorizontalOptions="Fill" />
 
         </VerticalStackLayout>
     </ScrollView>
