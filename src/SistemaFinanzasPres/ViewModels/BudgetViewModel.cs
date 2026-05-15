@@ -13,7 +13,7 @@ public partial class BudgetViewModel : BaseViewModel
     private readonly AppDbContext _db;
     private readonly BudgetService _budgetSvc;
     private readonly MonthService _month;
-    private decimal _ingresoDisponible;
+    private decimal _ingresoBase;
 
     public BudgetViewModel(AppDbContext db, BudgetService budgetSvc, MonthService month)
     {
@@ -44,8 +44,8 @@ public partial class BudgetViewModel : BaseViewModel
             MonthLabel = _month.Label;
 
             var snap = await _budgetSvc.GetSnapshotAsync(_month.Year, _month.Month);
-            _ingresoDisponible = snap.IngresoDisponible;
-            IngresoLabel = snap.IngresoDisponible.ToString("C0");
+            _ingresoBase = snap.IngresoTotal;
+            IngresoLabel = snap.IngresoTotal.ToString("C0");
 
             foreach (var row in Rows)
                 row.PropertyChanged -= OnRowChanged;
@@ -85,7 +85,7 @@ public partial class BudgetViewModel : BaseViewModel
     {
         var total = Rows.Sum(r => decimal.TryParse(r.BudgetedText, out var v) ? v : 0m);
         TotalPresupuestado = total.ToString("C0");
-        var diff = _ingresoDisponible - total;
+        var diff = _ingresoBase - total;
         IsOverBudget = diff < 0;
         DiferenciaLabel = diff >= 0 ? $"+{diff:C0} sin asignar" : $"{diff:C0} excedido";
         DiferenciaColor = diff < 0 ? Color.FromArgb("#EF4444") : Color.FromArgb("#10B981");

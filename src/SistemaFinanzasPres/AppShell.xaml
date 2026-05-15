@@ -9,8 +9,8 @@
     <TabBar>
         <ShellContent Title="Dashboard" Icon="dashboard.png"
                       ContentTemplate="{DataTemplate views:DashboardPage}" Route="dashboard" />
-        <ShellContent Title="Gastos" Icon="transactions.png"
-                      ContentTemplate="{DataTemplate views:TransactionsPage}" Route="transactions" />
+        <ShellContent Title="Movimientos" Icon="transactions.png"
+                      ContentTemplate="{DataTemplate views:MovementsPage}" Route="movements" />
         <ShellContent Title="Presupuesto" Icon="budget.png"
                       ContentTemplate="{DataTemplate views:BudgetPage}" Route="budget" />
         <ShellContent Title="KPIs" Icon="kpis.png"

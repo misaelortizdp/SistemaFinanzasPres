@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:SistemaFinanzasPres.ViewModels"
+             x:Class="SistemaFinanzasPres.Views.MovementsPage"
+             x:Name="pageRoot"
+             x:DataType="vm:MovementsViewModel"
+             Title="Movimientos">
+
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,*,Auto" Padding="14" RowSpacing="8">
+
+        <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto">
+            <Button Grid.Column="0" Text="◀" Command="{Binding PrevMonthCommand}" WidthRequest="48" />
+            <Label Grid.Column="1" Text="{Binding MonthLabel}" Style="{StaticResource H2}" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+            <Button Grid.Column="2" Text="▶" Command="{Binding NextMonthCommand}" WidthRequest="48" />
+        </Grid>
+
+        <Border Grid.Row="1" Style="{StaticResource Card}">
+            <Grid ColumnDefinitions="*,*,*">
+                <VerticalStackLayout Grid.Column="0">
+                    <Label Text="Ingresos" Style="{StaticResource Muted}" FontSize="11" />
+                    <Label Text="{Binding IngresosLabel}" Style="{StaticResource Body}" FontAttributes="Bold" TextColor="#10B981" />
+                </VerticalStackLayout>
+                <VerticalStackLayout Grid.Column="1">
+                    <Label Text="Gastos" Style="{StaticResource Muted}" FontSize="11" />
+                    <Label Text="{Binding GastosLabel}" Style="{StaticResource Body}" FontAttributes="Bold" TextColor="#EF4444" />
+                </VerticalStackLayout>
+                <VerticalStackLayout Grid.Column="2">
+                    <Label Text="Neto" Style="{StaticResource Muted}" FontSize="11" />
+                    <Label Text="{Binding NetoLabel}" Style="{StaticResource Body}" FontAttributes="Bold" TextColor="{Binding NetoColor}" />
+                </VerticalStackLayout>
+            </Grid>
+        </Border>
+
+        <Entry Grid.Row="2" Placeholder="Buscar concepto, categoría o fuente..." Text="{Binding SearchText}" />
+
+        <Picker Grid.Row="3" Title="Filtrar tipo" ItemsSource="{Binding FilterOptions}" SelectedItem="{Binding SelectedFilter}" />
+
+        <RefreshView Grid.Row="4" IsRefreshing="{Binding IsBusy}" Command="{Binding LoadCommand}">
+            <CollectionView ItemsSource="{Binding Items}" SelectionMode="None">
+                <CollectionView.EmptyView>
+                    <Label Text="Sin movimientos en este mes." HorizontalTextAlignment="Center" Style="{StaticResource Muted}" Margin="0,40" />
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="vm:MovementRow">
+                        <SwipeView>
+                            <SwipeView.RightItems>
+                                <SwipeItems>
+                                    <SwipeItem Text="Editar" BackgroundColor="#0F766E"
+                                               Command="{Binding BindingContext.EditCommand, Source={x:Reference pageRoot}}"
+                                               CommandParameter="{Binding .}" />
+                                    <SwipeItem Text="Eliminar" BackgroundColor="#EF4444"
+                                               Command="{Binding BindingContext.DeleteCommand, Source={x:Reference pageRoot}}"
+                                               CommandParameter="{Binding .}" />
+                                </SwipeItems>
+                            </SwipeView.RightItems>
+                            <Border Style="{StaticResource Card}" Margin="0,4">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer
+                                        Command="{Binding BindingContext.EditCommand, Source={x:Reference pageRoot}}"
+                                        CommandParameter="{Binding .}" />
+                                </Border.GestureRecognizers>
+                                <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="8">
+                                    <Label Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" Text="{Binding TypeIcon}"
+                                           FontSize="22" VerticalTextAlignment="Center" />
+                                    <Label Grid.Row="0" Grid.Column="1" Text="{Binding Concept}" FontAttributes="Bold" Style="{StaticResource Body}" />
+                                    <Label Grid.Row="0" Grid.Column="2" Text="{Binding AmountLabel}" FontAttributes="Bold" Style="{StaticResource Body}"
+                                           TextColor="{Binding AmountColor}" />
+                                    <Label Grid.Row="1" Grid.Column="1" Style="{StaticResource Muted}">
+                                        <Label.Text>
+                                            <MultiBinding StringFormat="{}{0:dd MMM} · {1}">
+                                                <Binding Path="Date" />
+                                                <Binding Path="CategoryOrSource" />
+                                            </MultiBinding>
+                                        </Label.Text>
+                                    </Label>
+                                    <Label Grid.Row="1" Grid.Column="2" Text="{Binding Account}" Style="{StaticResource Muted}" HorizontalTextAlignment="End" />
+                                </Grid>
+                            </Border>
+                        </SwipeView>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </RefreshView>
+
+        <Grid Grid.Row="5" ColumnDefinitions="*,*" ColumnSpacing="8">
+            <Button Grid.Column="0" Text="💵 + Ingreso" Command="{Binding AddIncomeCommand}" BackgroundColor="#10B981" />
+            <Button Grid.Column="1" Text="💸 + Gasto" Command="{Binding AddExpenseCommand}" BackgroundColor="#B91C1C" />
+        </Grid>
+    </Grid>
+</ContentPage>

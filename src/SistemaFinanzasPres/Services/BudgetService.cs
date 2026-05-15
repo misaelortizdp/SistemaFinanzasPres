@@ -130,7 +130,7 @@ public class BudgetService
         var totalS = rows.Sum(r => r.Spent);
         var pctExec = totalB > 0 ? totalS / totalB : 0m;
 
-        var projection = BuildProjection(year, month, totalS, ingresoDisponible);
+        var projection = BuildProjection(year, month, totalS, ingresoTotal);
 
         return new BudgetSnapshot(
             config, ingresoTotal, ingresoDisponible, usedTransactional,
@@ -138,7 +138,7 @@ public class BudgetService
             rows, pillars, projection);
     }
 
-    private static MonthProjection BuildProjection(int year, int month, decimal totalSpent, decimal ingresoDisponible)
+    private static MonthProjection BuildProjection(int year, int month, decimal totalSpent, decimal ingresoBase)
     {
         var today = DateTime.Today;
         var daysInMonth = DateTime.DaysInMonth(year, month);
@@ -156,23 +156,23 @@ public class BudgetService
 
         var burnDaily = daysElapsed > 0 ? totalSpent / daysElapsed : 0m;
         var projectedSpend = isCurrent ? burnDaily * daysInMonth : totalSpent;
-        var remainingBudget = ingresoDisponible - totalSpent;
+        var remainingBudget = ingresoBase - totalSpent;
         var allowedDaily = daysRemaining > 0 ? Math.Max(0m, remainingBudget / daysRemaining) : 0m;
-        var projectedSurplus = ingresoDisponible - projectedSpend;
+        var projectedSurplus = ingresoBase - projectedSpend;
 
         string headline;
         if (!isCurrent && !isPast)
             headline = "Mes futuro — sin proyección aún.";
         else if (isPast)
-            headline = totalSpent <= ingresoDisponible
-                ? $"Cerró con superávit de {(ingresoDisponible - totalSpent):C0}."
-                : $"Cerró con déficit de {(totalSpent - ingresoDisponible):C0}.";
-        else if (ingresoDisponible <= 0)
+            headline = totalSpent <= ingresoBase
+                ? $"Cerró con superávit de {(ingresoBase - totalSpent):C0}."
+                : $"Cerró con déficit de {(totalSpent - ingresoBase):C0}.";
+        else if (ingresoBase <= 0)
             headline = "Define tu ingreso para ver proyección.";
-        else if (projectedSpend <= ingresoDisponible)
-            headline = $"A este ritmo cerrarás con {(ingresoDisponible - projectedSpend):C0} de sobrante.";
+        else if (projectedSpend <= ingresoBase)
+            headline = $"A este ritmo cerrarás con {(ingresoBase - projectedSpend):C0} de sobrante.";
         else
-            headline = $"⚠️ A este ritmo te faltarán {(projectedSpend - ingresoDisponible):C0} este mes.";
+            headline = $"⚠️ A este ritmo te faltarán {(projectedSpend - ingresoBase):C0} este mes.";
 
         return new MonthProjection(
             isCurrent, daysElapsed, daysRemaining, daysInMonth,

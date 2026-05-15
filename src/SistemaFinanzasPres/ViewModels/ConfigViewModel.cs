@@ -99,10 +99,6 @@ public partial class ConfigViewModel : BaseViewModel
         => await Shell.Current.GoToAsync(nameof(AccountsPage));
 
     [RelayCommand]
-    private async Task GoToIncomesAsync()
-        => await Shell.Current.GoToAsync(nameof(IncomesPage));
-
-    [RelayCommand]
     private async Task GoToDebtsAsync()
         => await Shell.Current.GoToAsync(nameof(DebtsPage));
 

@@ -2,10 +2,10 @@ using SistemaFinanzasPres.ViewModels;
 
 namespace SistemaFinanzasPres.Views;
 
-public partial class IncomesPage : ContentPage
+public partial class MovementsPage : ContentPage
 {
-    private readonly IncomesViewModel _vm;
-    public IncomesPage(IncomesViewModel vm)
+    private readonly MovementsViewModel _vm;
+    public MovementsPage(MovementsViewModel vm)
     {
         InitializeComponent();
         BindingContext = _vm = vm;

@@ -71,10 +71,9 @@
             <!-- ── Administrar ─────────────────────────────── -->
             <Label Text="Administrar" Style="{StaticResource H2}" Margin="0,12,0,0" />
             <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="8">
-                <Button Grid.Row="0" Grid.Column="0" Text="💵 Ingresos" Command="{Binding GoToIncomesCommand}" BackgroundColor="#10B981" />
-                <Button Grid.Row="0" Grid.Column="1" Text="💳 Deudas" Command="{Binding GoToDebtsCommand}" BackgroundColor="#B91C1C" />
-                <Button Grid.Row="1" Grid.Column="0" Text="🗂 Categorías" Command="{Binding GoToCategoriesCommand}" />
-                <Button Grid.Row="1" Grid.Column="1" Text="🏦 Cuentas" Command="{Binding GoToAccountsCommand}" />
+                <Button Grid.Row="0" Grid.Column="0" Text="💳 Deudas" Command="{Binding GoToDebtsCommand}" BackgroundColor="#B91C1C" />
+                <Button Grid.Row="0" Grid.Column="1" Text="🏦 Cuentas" Command="{Binding GoToAccountsCommand}" />
+                <Button Grid.Row="1" Grid.Column="0" Text="🗂 Categorías" Command="{Binding GoToCategoriesCommand}" Grid.ColumnSpan="2" />
             </Grid>
 
         </VerticalStackLayout>

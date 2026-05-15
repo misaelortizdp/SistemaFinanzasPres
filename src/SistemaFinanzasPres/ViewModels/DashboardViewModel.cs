@@ -52,7 +52,7 @@ public partial class DashboardViewModel : BaseViewModel
             Ingreso = snap.IngresoTotal.ToString("C0");
             IngresoSource = snap.UsedTransactionalIncome ? "Ingresos registrados" : "Salario configurado";
             TotalGastado = snap.TotalSpent.ToString("C0");
-            Disponible = (snap.IngresoDisponible - snap.TotalSpent).ToString("C0");
+            Disponible = (snap.IngresoTotal - snap.TotalSpent).ToString("C0");
             PctEjecutado = (snap.IngresoTotal > 0 ? snap.TotalSpent / snap.IngresoTotal : 0m).ToString("P1");
             var ahorro = snap.Pillars.First(p => p.Pillar == Models.Pillar.Ahorro);
             TasaAhorro = (snap.IngresoTotal > 0 ? ahorro.Spent / snap.IngresoTotal : 0m).ToString("P1");
