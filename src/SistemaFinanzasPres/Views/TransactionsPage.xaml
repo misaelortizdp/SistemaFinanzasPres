@@ -19,7 +19,7 @@
 
         <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="8">
             <Picker Grid.Column="0" Title="Pilar" ItemsSource="{Binding PillarOptions}" SelectedItem="{Binding SelectedPillar}" />
-            <Picker Grid.Column="1" Title="Categoría" ItemsSource="{Binding Categories}" ItemDisplayBinding="{Binding Name}" SelectedValue="{Binding SelectedCategoryId}" SelectedValuePath="Id" />
+            <Picker Grid.Column="1" Title="Categoría" ItemsSource="{Binding Categories}" ItemDisplayBinding="{Binding Name}" SelectedItem="{Binding SelectedCategory}" />
         </Grid>
 
         <RefreshView Grid.Row="3" IsRefreshing="{Binding IsBusy}" Command="{Binding LoadCommand}">

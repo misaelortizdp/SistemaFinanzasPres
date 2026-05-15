@@ -26,7 +26,7 @@ public partial class TransactionsViewModel : BaseViewModel
     [ObservableProperty] private string totalLabel = "$0";
     [ObservableProperty] private string? searchText;
     [ObservableProperty] private string? selectedPillar;
-    [ObservableProperty] private int? selectedCategoryId;
+    [ObservableProperty] private Category? selectedCategory;
 
     public ObservableCollection<TxRow> Items { get; } = new();
     public ObservableCollection<Category> Categories { get; } = new();
@@ -34,7 +34,7 @@ public partial class TransactionsViewModel : BaseViewModel
 
     partial void OnSearchTextChanged(string? value) => _ = LoadAsync();
     partial void OnSelectedPillarChanged(string? value) => _ = LoadAsync();
-    partial void OnSelectedCategoryIdChanged(int? value) => _ = LoadAsync();
+    partial void OnSelectedCategoryChanged(Category? value) => _ = LoadAsync();
 
     [RelayCommand]
     public async Task LoadAsync()
@@ -69,8 +69,9 @@ public partial class TransactionsViewModel : BaseViewModel
                 query = query.Where(t => t.Category!.Pillar == p);
             }
 
-            if (SelectedCategoryId is int catId && catId > 0)
+            if (SelectedCategory is not null)
             {
+                var catId = SelectedCategory.Id;
                 query = query.Where(t => t.CategoryId == catId);
             }
 
