@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:SistemaFinanzasPres.ViewModels"
+             xmlns:m="clr-namespace:SistemaFinanzasPres.Models"
+             x:Class="SistemaFinanzasPres.Views.AccountsPage"
+             x:Name="pageRoot"
+             x:DataType="vm:AccountsViewModel"
+             Title="Cuentas">
+
+    <Grid RowDefinitions="Auto,*,Auto" Padding="14" RowSpacing="8">
+        <Border Grid.Row="0" Style="{StaticResource Card}">
+            <VerticalStackLayout Spacing="8">
+                <Label Text="Nueva cuenta" Style="{StaticResource H2}" />
+                <Entry Text="{Binding NewName}" Placeholder="Nombre (Efectivo, Banco, etc.)" />
+                <Entry Text="{Binding NewBalance}" Placeholder="Saldo inicial" Keyboard="Numeric" />
+                <Button Text="Agregar" Command="{Binding AddCommand}" />
+            </VerticalStackLayout>
+        </Border>
+
+        <CollectionView Grid.Row="1" ItemsSource="{Binding Items}" SelectionMode="None">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="m:Account">
+                    <SwipeView>
+                        <SwipeView.RightItems>
+                            <SwipeItems>
+                                <SwipeItem Text="Renombrar" BackgroundColor="#0F766E"
+                                           Command="{Binding BindingContext.RenameCommand, Source={x:Reference pageRoot}}"
+                                           CommandParameter="{Binding .}" />
+                                <SwipeItem Text="Eliminar" BackgroundColor="#EF4444"
+                                           Command="{Binding BindingContext.DeleteCommand, Source={x:Reference pageRoot}}"
+                                           CommandParameter="{Binding .}" />
+                            </SwipeItems>
+                        </SwipeView.RightItems>
+                        <Border Style="{StaticResource Card}" Margin="0,4">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer
+                                    Command="{Binding BindingContext.EditBalanceCommand, Source={x:Reference pageRoot}}"
+                                    CommandParameter="{Binding .}" />
+                            </Border.GestureRecognizers>
+                            <Grid ColumnDefinitions="*,Auto">
+                                <Label Grid.Column="0" Text="{Binding Name}" Style="{StaticResource Body}" FontAttributes="Bold" />
+                                <Label Grid.Column="1" Text="{Binding Balance, StringFormat='{0:C0}'}" Style="{StaticResource Body}" />
+                            </Grid>
+                        </Border>
+                    </SwipeView>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <Border Grid.Row="2" Style="{StaticResource Card}">
+            <Grid ColumnDefinitions="*,Auto">
+                <Label Grid.Column="0" Text="Total saldos" Style="{StaticResource Body}" FontAttributes="Bold" />
+                <Label Grid.Column="1" Text="{Binding TotalLabel}" Style="{StaticResource Body}" FontAttributes="Bold" />
+            </Grid>
+        </Border>
+    </Grid>
+</ContentPage>

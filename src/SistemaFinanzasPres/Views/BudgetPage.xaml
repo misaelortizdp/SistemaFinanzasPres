@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:SistemaFinanzasPres.ViewModels"
+             xmlns:conv="clr-namespace:SistemaFinanzasPres.Converters"
+             x:Class="SistemaFinanzasPres.Views.BudgetPage"
+             x:DataType="vm:BudgetViewModel"
+             Title="Presupuesto">
+
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <conv:StatusToColorConverter x:Key="StatusColor" />
+            <conv:PillarToColorConverter x:Key="PillarColor" />
+        </ResourceDictionary>
+    </ContentPage.Resources>
+
+    <Grid RowDefinitions="Auto,*,Auto" Padding="14" RowSpacing="8">
+        <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto">
+            <Button Grid.Column="0" Text="◀" Command="{Binding PrevMonthCommand}" WidthRequest="48" />
+            <Label Grid.Column="1" Text="{Binding MonthLabel}" Style="{StaticResource H2}" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+            <Button Grid.Column="2" Text="▶" Command="{Binding NextMonthCommand}" WidthRequest="48" />
+        </Grid>
+
+        <RefreshView Grid.Row="1" IsRefreshing="{Binding IsBusy}" Command="{Binding LoadCommand}">
+            <CollectionView ItemsSource="{Binding Rows}" SelectionMode="None">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="vm:BudgetRow">
+                        <Border Style="{StaticResource Card}" Margin="0,4"
+                                BackgroundColor="{Binding Pillar, Converter={StaticResource PillarColor}}">
+                            <Grid ColumnDefinitions="*,140" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8">
+                                <Label Grid.Row="0" Grid.Column="0" Text="{Binding Name}" FontAttributes="Bold" Style="{StaticResource Body}" />
+                                <Label Grid.Row="0" Grid.Column="1" Text="{Binding Pillar}" HorizontalTextAlignment="End" Style="{StaticResource Muted}" />
+                                <Label Grid.Row="1" Grid.Column="0" Text="Presupuesto:" Style="{StaticResource Muted}" VerticalTextAlignment="Center" />
+                                <Entry Grid.Row="1" Grid.Column="1" Text="{Binding BudgetedText}" Keyboard="Numeric" />
+                                <Label Grid.Row="2" Grid.Column="0" Style="{StaticResource Muted}">
+                                    <Label.Text>
+                                        <MultiBinding StringFormat="Gast {0}  ·  Disp {1}  ·  {2}">
+                                            <Binding Path="Spent" />
+                                            <Binding Path="Available" />
+                                            <Binding Path="Pct" />
+                                        </MultiBinding>
+                                    </Label.Text>
+                                </Label>
+                                <Label Grid.Row="2" Grid.Column="1" Text="{Binding Status}" FontAttributes="Bold"
+                                       HorizontalTextAlignment="End"
+                                       TextColor="{Binding Status, Converter={StaticResource StatusColor}}" />
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </RefreshView>
+
+        <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="8">
+            <Button Grid.Column="0" Text="Copiar mes anterior" Style="{StaticResource ButtonGhost}" Command="{Binding CopyPrevCommand}" />
+            <Button Grid.Column="1" Text="Guardar" Command="{Binding SaveCommand}" />
+        </Grid>
+    </Grid>
+</ContentPage>

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Shell xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+       xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+       xmlns:views="clr-namespace:SistemaFinanzasPres.Views"
+       x:Class="SistemaFinanzasPres.AppShell"
+       Title="Finanzas Personales"
+       FlyoutBehavior="Flyout">
+
+    <TabBar>
+        <ShellContent Title="Dashboard" Icon="dashboard.png"
+                      ContentTemplate="{DataTemplate views:DashboardPage}" Route="dashboard" />
+        <ShellContent Title="Gastos" Icon="transactions.png"
+                      ContentTemplate="{DataTemplate views:TransactionsPage}" Route="transactions" />
+        <ShellContent Title="Presupuesto" Icon="budget.png"
+                      ContentTemplate="{DataTemplate views:BudgetPage}" Route="budget" />
+        <ShellContent Title="KPIs" Icon="kpis.png"
+                      ContentTemplate="{DataTemplate views:KpisPage}" Route="kpis" />
+        <ShellContent Title="Más" Icon="more.png"
+                      ContentTemplate="{DataTemplate views:ConfigPage}" Route="config" />
+    </TabBar>
+
+    <FlyoutItem Title="Categorías" Icon="categories.png">
+        <ShellContent ContentTemplate="{DataTemplate views:CategoriesPage}" Route="categories" />
+    </FlyoutItem>
+    <FlyoutItem Title="Cuentas" Icon="accounts.png">
+        <ShellContent ContentTemplate="{DataTemplate views:AccountsPage}" Route="accounts" />
+    </FlyoutItem>
+
+</Shell>

@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:SistemaFinanzasPres.ViewModels"
+             xmlns:m="clr-namespace:SistemaFinanzasPres.Models"
+             xmlns:conv="clr-namespace:SistemaFinanzasPres.Converters"
+             x:Class="SistemaFinanzasPres.Views.CategoriesPage"
+             x:Name="pageRoot"
+             x:DataType="vm:CategoriesViewModel"
+             Title="Categorías">
+
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <conv:PillarToColorConverter x:Key="PillarColor" />
+        </ResourceDictionary>
+    </ContentPage.Resources>
+
+    <Grid RowDefinitions="Auto,*" Padding="14" RowSpacing="8">
+        <Border Grid.Row="0" Style="{StaticResource Card}">
+            <VerticalStackLayout Spacing="8">
+                <Label Text="Nueva categoría" Style="{StaticResource H2}" />
+                <Entry Text="{Binding NewName}" Placeholder="Nombre" />
+                <Picker Title="Pilar" ItemsSource="{Binding PillarOptions}" SelectedItem="{Binding NewPillar}" />
+                <Button Text="Agregar" Command="{Binding AddCommand}" />
+            </VerticalStackLayout>
+        </Border>
+
+        <CollectionView Grid.Row="1" ItemsSource="{Binding Items}" SelectionMode="None">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="m:Category">
+                    <SwipeView>
+                        <SwipeView.RightItems>
+                            <SwipeItems>
+                                <SwipeItem Text="Renombrar" BackgroundColor="#0F766E"
+                                           Command="{Binding BindingContext.RenameCommand, Source={x:Reference pageRoot}}"
+                                           CommandParameter="{Binding .}" />
+                                <SwipeItem Text="Pilar" BackgroundColor="#F59E0B"
+                                           Command="{Binding BindingContext.ChangePillarCommand, Source={x:Reference pageRoot}}"
+                                           CommandParameter="{Binding .}" />
+                                <SwipeItem Text="Eliminar" BackgroundColor="#EF4444"
+                                           Command="{Binding BindingContext.DeleteCommand, Source={x:Reference pageRoot}}"
+                                           CommandParameter="{Binding .}" />
+                            </SwipeItems>
+                        </SwipeView.RightItems>
+                        <Border Style="{StaticResource Card}" Margin="0,4"
+                                BackgroundColor="{Binding Pillar, Converter={StaticResource PillarColor}}">
+                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                                <VerticalStackLayout Grid.Column="0">
+                                    <Label Text="{Binding Name}" Style="{StaticResource Body}" FontAttributes="Bold" />
+                                    <Label Text="{Binding Pillar}" Style="{StaticResource Muted}" />
+                                </VerticalStackLayout>
+                                <Switch Grid.Column="1" IsToggled="{Binding IsActive}" Toggled="OnActiveToggled" />
+                                <Label Grid.Column="2" Text="🗑" FontSize="20" VerticalTextAlignment="Center">
+                                    <Label.GestureRecognizers>
+                                        <TapGestureRecognizer
+                                            Command="{Binding BindingContext.DeleteCommand, Source={x:Reference pageRoot}}"
+                                            CommandParameter="{Binding .}" />
+                                    </Label.GestureRecognizers>
+                                </Label>
+                            </Grid>
+                        </Border>
+                    </SwipeView>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </Grid>
+</ContentPage>

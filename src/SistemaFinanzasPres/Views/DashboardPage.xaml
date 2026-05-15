@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:SistemaFinanzasPres.ViewModels"
+             xmlns:conv="clr-namespace:SistemaFinanzasPres.Converters"
+             x:Class="SistemaFinanzasPres.Views.DashboardPage"
+             x:DataType="vm:DashboardViewModel"
+             Title="Dashboard">
+
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <conv:StatusToColorConverter x:Key="StatusColor" />
+            <conv:PillarToColorConverter x:Key="PillarColor" />
+        </ResourceDictionary>
+    </ContentPage.Resources>
+
+    <RefreshView IsRefreshing="{Binding IsBusy}" Command="{Binding LoadCommand}">
+    <ScrollView>
+        <VerticalStackLayout Padding="14" Spacing="12">
+
+            <Grid ColumnDefinitions="Auto,*,Auto" VerticalOptions="Center">
+                <Button Grid.Column="0" Text="◀" Command="{Binding PrevMonthCommand}" WidthRequest="48" />
+                <Label Grid.Column="1" Text="{Binding MonthLabel}" Style="{StaticResource H1}" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                <Button Grid.Column="2" Text="▶" Command="{Binding NextMonthCommand}" WidthRequest="48" />
+            </Grid>
+
+            <Border Style="{StaticResource Card}">
+                <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="6">
+                    <Label Grid.Row="0" Grid.Column="0" Text="💰 Ingreso" Style="{StaticResource Muted}" />
+                    <Label Grid.Row="0" Grid.Column="1" Text="💸 Gastado" Style="{StaticResource Muted}" />
+                    <Label Grid.Row="1" Grid.Column="0" Text="{Binding Ingreso}" Style="{StaticResource H2}" />
+                    <Label Grid.Row="1" Grid.Column="1" Text="{Binding TotalGastado}" Style="{StaticResource H2}" />
+                    <Label Grid.Row="2" Grid.Column="0" Text="✅ Disponible" Style="{StaticResource Muted}" />
+                    <Label Grid.Row="2" Grid.Column="1" Text="💰 Tasa Ahorro" Style="{StaticResource Muted}" />
+                    <Label Grid.Row="3" Grid.Column="0" Text="{Binding Disponible}" Style="{StaticResource H2}" />
+                    <Label Grid.Row="3" Grid.Column="1" Text="{Binding TasaAhorro}" Style="{StaticResource H2}" />
+                </Grid>
+            </Border>
+
+            <Button Text="➕ Agregar gasto" Command="{Binding AddTransactionCommand}" />
+
+            <Label Text="📊 Análisis 50/30/20" Style="{StaticResource H2}" Margin="0,8,0,0" />
+            <CollectionView ItemsSource="{Binding Pillars}">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="vm:PillarRow">
+                        <Border Style="{StaticResource Card}" Margin="0,4"
+                                BackgroundColor="{Binding Name, Converter={StaticResource PillarColor}}">
+                            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto">
+                                <Label Grid.Row="0" Grid.Column="0" Text="{Binding Name}" Style="{StaticResource H2}" />
+                                <Label Grid.Row="0" Grid.Column="1" Text="{Binding Status}" FontAttributes="Bold"
+                                       TextColor="{Binding Status, Converter={StaticResource StatusColor}}" />
+                                <Label Grid.Row="1" Grid.Column="0" Style="{StaticResource Muted}">
+                                    <Label.Text>
+                                        <MultiBinding StringFormat="Presup: {0}  ·  Gastado: {1}">
+                                            <Binding Path="Budgeted" />
+                                            <Binding Path="Spent" />
+                                        </MultiBinding>
+                                    </Label.Text>
+                                </Label>
+                                <Label Grid.Row="1" Grid.Column="1" Text="{Binding Pct}" Style="{StaticResource Muted}" />
+                                <Label Grid.Row="2" Grid.Column="0" Style="{StaticResource Muted}">
+                                    <Label.Text>
+                                        <MultiBinding StringFormat="Meta: {0}">
+                                            <Binding Path="Meta" />
+                                        </MultiBinding>
+                                    </Label.Text>
+                                </Label>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <Label Text="🔍 Detalle por categoría" Style="{StaticResource H2}" Margin="0,8,0,0" />
+            <CollectionView ItemsSource="{Binding Categories}">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="vm:CategoryRow">
+                        <Border Style="{StaticResource Card}" Margin="0,4">
+                            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8">
+                                <Label Grid.Row="0" Grid.Column="0" Text="{Binding Name}" Style="{StaticResource Body}" FontAttributes="Bold" />
+                                <Label Grid.Row="0" Grid.Column="1" Text="{Binding Pillar}" Style="{StaticResource Muted}" />
+                                <Label Grid.Row="1" Grid.Column="0" Style="{StaticResource Muted}">
+                                    <Label.Text>
+                                        <MultiBinding StringFormat="Presup {0}  ·  Gast {1}  ·  Disp {2}">
+                                            <Binding Path="Budgeted" />
+                                            <Binding Path="Spent" />
+                                            <Binding Path="Available" />
+                                        </MultiBinding>
+                                    </Label.Text>
+                                </Label>
+                                <Label Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Text="{Binding Status}"
+                                       FontAttributes="Bold"
+                                       TextColor="{Binding Status, Converter={StaticResource StatusColor}}" />
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+        </VerticalStackLayout>
+    </ScrollView>
+    </RefreshView>
+</ContentPage>

@@ -1,0 +1,31 @@
+## .NET / VS
+bin/
+obj/
+.vs/
+.vscode/
+*.user
+*.userosscache
+*.suo
+*.lock.json
+*.nuget.props
+*.nuget.targets
+project.lock.json
+
+## OS
+.DS_Store
+Thumbs.db
+
+## Logs
+*.log
+*.binlog
+
+## Local secrets / outputs
+*.pfx
+*.snk
+**/Properties/launchSettings.json
+publish/
+PublishProfiles/
+
+## SQLite local db (en dispositivo)
+*.db3
+*.db

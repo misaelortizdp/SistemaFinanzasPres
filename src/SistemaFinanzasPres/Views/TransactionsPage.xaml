@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:SistemaFinanzasPres.ViewModels"
+             xmlns:m="clr-namespace:SistemaFinanzasPres.Models"
+             x:Class="SistemaFinanzasPres.Views.TransactionsPage"
+             x:Name="pageRoot"
+             x:DataType="vm:TransactionsViewModel"
+             Title="Gastos">
+
+    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" Padding="14" RowSpacing="8">
+        <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto">
+            <Button Grid.Column="0" Text="◀" Command="{Binding PrevMonthCommand}" WidthRequest="48" />
+            <Label Grid.Column="1" Text="{Binding MonthLabel}" Style="{StaticResource H2}" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+            <Button Grid.Column="2" Text="▶" Command="{Binding NextMonthCommand}" WidthRequest="48" />
+        </Grid>
+
+        <Entry Grid.Row="1" Placeholder="Buscar concepto/notas..." Text="{Binding SearchText}" />
+
+        <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="8">
+            <Picker Grid.Column="0" Title="Pilar" ItemsSource="{Binding PillarOptions}" SelectedItem="{Binding SelectedPillar}" />
+            <Picker Grid.Column="1" Title="Categoría" ItemsSource="{Binding Categories}" ItemDisplayBinding="{Binding Name}" SelectedValue="{Binding SelectedCategoryId}" SelectedValuePath="Id" />
+        </Grid>
+
+        <RefreshView Grid.Row="3" IsRefreshing="{Binding IsBusy}" Command="{Binding LoadCommand}">
+            <CollectionView ItemsSource="{Binding Items}" SelectionMode="None">
+                <CollectionView.EmptyView>
+                    <Label Text="Sin gastos en este mes." HorizontalTextAlignment="Center" Style="{StaticResource Muted}" Margin="0,40" />
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="vm:TxRow">
+                        <SwipeView>
+                            <SwipeView.RightItems>
+                                <SwipeItems>
+                                    <SwipeItem Text="Editar" BackgroundColor="#0F766E"
+                                               Command="{Binding BindingContext.EditCommand, Source={x:Reference pageRoot}}"
+                                               CommandParameter="{Binding .}" />
+                                    <SwipeItem Text="Eliminar" BackgroundColor="#EF4444"
+                                               Command="{Binding BindingContext.DeleteCommand, Source={x:Reference pageRoot}}"
+                                               CommandParameter="{Binding .}" />
+                                </SwipeItems>
+                            </SwipeView.RightItems>
+                            <Border Style="{StaticResource Card}" Margin="0,4">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer
+                                        Command="{Binding BindingContext.EditCommand, Source={x:Reference pageRoot}}"
+                                        CommandParameter="{Binding .}" />
+                                </Border.GestureRecognizers>
+                                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8">
+                                    <Label Grid.Row="0" Grid.Column="0" Text="{Binding Concept}" FontAttributes="Bold" Style="{StaticResource Body}" />
+                                    <Label Grid.Row="0" Grid.Column="1" Text="{Binding AmountLabel}" FontAttributes="Bold" Style="{StaticResource Body}" />
+                                    <Label Grid.Row="1" Grid.Column="0" Style="{StaticResource Muted}">
+                                        <Label.Text>
+                                            <MultiBinding StringFormat="{}{0:dd MMM} · {1}">
+                                                <Binding Path="Date" />
+                                                <Binding Path="Category" />
+                                            </MultiBinding>
+                                        </Label.Text>
+                                    </Label>
+                                    <Label Grid.Row="1" Grid.Column="1" Text="{Binding PillarShort}" Style="{StaticResource Muted}" />
+                                    <Label Grid.Row="2" Grid.Column="0" Text="{Binding Account}" Style="{StaticResource Muted}" />
+                                </Grid>
+                            </Border>
+                        </SwipeView>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </RefreshView>
+
+        <Grid Grid.Row="4" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+            <Label Grid.Column="0" VerticalTextAlignment="Center">
+                <Label.Text>
+                    <MultiBinding StringFormat="Total mes: {0}">
+                        <Binding Path="TotalLabel" />
+                    </MultiBinding>
+                </Label.Text>
+            </Label>
+            <Button Grid.Column="1" Text="➕ Nuevo" Command="{Binding AddCommand}" />
+        </Grid>
+    </Grid>
+</ContentPage>
