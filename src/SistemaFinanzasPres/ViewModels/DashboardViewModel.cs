@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using SistemaFinanzasPres.Models;
 using SistemaFinanzasPres.Services;
 using SistemaFinanzasPres.Views;
 
