@@ -33,6 +33,7 @@ public static class MauiProgram
         builder.Services.AddTransient<IncomeService>();
         builder.Services.AddTransient<DebtService>();
         builder.Services.AddTransient<NetWorthService>();
+        builder.Services.AddTransient<SavingsGoalService>();
 
         builder.Services.AddTransient<DashboardViewModel>();
         builder.Services.AddTransient<BudgetViewModel>();
@@ -47,6 +48,8 @@ public static class MauiProgram
         builder.Services.AddTransient<DebtsViewModel>();
         builder.Services.AddTransient<DebtEditViewModel>();
         builder.Services.AddTransient<PatrimonioViewModel>();
+        builder.Services.AddTransient<SavingsGoalsViewModel>();
+        builder.Services.AddTransient<SavingsGoalEditViewModel>();
 
         builder.Services.AddTransient<DashboardPage>();
         builder.Services.AddTransient<BudgetPage>();
@@ -61,6 +64,8 @@ public static class MauiProgram
         builder.Services.AddTransient<DebtsPage>();
         builder.Services.AddTransient<DebtEditPage>();
         builder.Services.AddTransient<PatrimonioPage>();
+        builder.Services.AddTransient<SavingsGoalsPage>();
+        builder.Services.AddTransient<SavingsGoalEditPage>();
 
         return builder.Build();
     }

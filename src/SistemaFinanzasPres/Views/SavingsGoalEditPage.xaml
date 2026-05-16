@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:SistemaFinanzasPres.ViewModels"
+             x:Class="SistemaFinanzasPres.Views.SavingsGoalEditPage"
+             x:DataType="vm:SavingsGoalEditViewModel"
+             Title="{Binding Title}">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="14" Spacing="10">
+
+            <Label Text="Nombre" Style="{StaticResource Muted}" />
+            <Entry Text="{Binding Name}" Placeholder="Ej: Vacaciones, casa propia, fondo de emergencia" />
+
+            <Label Text="Prioridad" Style="{StaticResource Muted}" />
+            <Picker ItemsSource="{Binding PriorityOptions}" SelectedItem="{Binding Priority}" />
+
+            <Label Text="Monto objetivo" Style="{StaticResource Muted}" />
+            <Entry Text="{Binding TargetText}" Placeholder="0" Keyboard="Numeric" />
+
+            <Label Text="Ya tienes ahorrado" Style="{StaticResource Muted}" />
+            <Entry Text="{Binding AchievedText}" Placeholder="0" Keyboard="Numeric" />
+
+            <Label Text="Aporte mensual planeado (opcional)" Style="{StaticResource Muted}" />
+            <Entry Text="{Binding MonthlyPlannedText}" Placeholder="0" Keyboard="Numeric" />
+
+            <HorizontalStackLayout Spacing="8" Margin="0,4,0,0">
+                <CheckBox IsChecked="{Binding HasDeadline}" />
+                <Label Text="Tiene fecha límite" VerticalTextAlignment="Center" />
+            </HorizontalStackLayout>
+            <DatePicker Date="{Binding Deadline}" IsEnabled="{Binding HasDeadline}" />
+
+            <Label Text="Notas" Style="{StaticResource Muted}" />
+            <Editor Text="{Binding Notes}" HeightRequest="80" Placeholder="Opcional" />
+
+            <Grid ColumnDefinitions="*,*,Auto" ColumnSpacing="8" Margin="0,12,0,0">
+                <Button Grid.Column="0" Text="Cancelar" Command="{Binding CancelCommand}" />
+                <Button Grid.Column="1" Text="Guardar" Command="{Binding SaveCommand}" />
+                <Button Grid.Column="2" Text="🗑" BackgroundColor="#EF4444" Command="{Binding DeleteCommand}"
+                        IsVisible="{Binding IsExisting}" WidthRequest="48" />
+            </Grid>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

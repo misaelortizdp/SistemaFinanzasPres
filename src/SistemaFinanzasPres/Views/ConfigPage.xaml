@@ -120,10 +120,11 @@
             <!-- ── Administrar ─────────────────────────────── -->
             <Label Text="Administrar" Style="{StaticResource H2}" Margin="0,12,0,0" />
             <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="8">
-                <Button Grid.Row="0" Grid.Column="0" Text="💎 Patrimonio" Command="{Binding GoToPatrimonioCommand}" BackgroundColor="#0F766E" />
-                <Button Grid.Row="0" Grid.Column="1" Text="💳 Deudas" Command="{Binding GoToDebtsCommand}" BackgroundColor="#B91C1C" />
-                <Button Grid.Row="1" Grid.Column="0" Text="🏦 Cuentas" Command="{Binding GoToAccountsCommand}" />
-                <Button Grid.Row="1" Grid.Column="1" Text="🗂 Categorías" Command="{Binding GoToCategoriesCommand}" />
+                <Button Grid.Row="0" Grid.Column="0" Text="🎯 Metas" Command="{Binding GoToGoalsCommand}" BackgroundColor="#7C3AED" />
+                <Button Grid.Row="0" Grid.Column="1" Text="💎 Patrimonio" Command="{Binding GoToPatrimonioCommand}" BackgroundColor="#0F766E" />
+                <Button Grid.Row="1" Grid.Column="0" Text="💳 Deudas" Command="{Binding GoToDebtsCommand}" BackgroundColor="#B91C1C" />
+                <Button Grid.Row="1" Grid.Column="1" Text="🏦 Cuentas" Command="{Binding GoToAccountsCommand}" />
+                <Button Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Text="🗂 Categorías" Command="{Binding GoToCategoriesCommand}" />
             </Grid>
 
         </VerticalStackLayout>

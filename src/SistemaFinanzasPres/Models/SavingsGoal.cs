@@ -17,5 +17,12 @@ public class SavingsGoal
     public decimal Target { get; set; }
     public decimal Achieved { get; set; }
 
+    public DateTime? Deadline { get; set; }
+    public decimal MonthlyPlanned { get; set; }
+    public bool IsActive { get; set; } = true;
+
+    [MaxLength(500)]
+    public string? Notes { get; set; }
+
     public int SortOrder { get; set; }
 }

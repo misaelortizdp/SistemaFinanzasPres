@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:SistemaFinanzasPres.ViewModels"
+             x:Class="SistemaFinanzasPres.Views.SavingsGoalsPage"
+             x:Name="pageRoot"
+             x:DataType="vm:SavingsGoalsViewModel"
+             Title="Metas de ahorro">
+
+    <Grid RowDefinitions="Auto,*,Auto" Padding="14" RowSpacing="10">
+
+        <!-- Resumen -->
+        <Border Grid.Row="0" Style="{StaticResource Card}">
+            <VerticalStackLayout Spacing="6">
+                <Label Text="🎯 Progreso total" Style="{StaticResource Muted}" />
+                <Grid ColumnDefinitions="*,Auto">
+                    <Label Grid.Column="0" Style="{StaticResource Body}" FontAttributes="Bold">
+                        <Label.Text>
+                            <MultiBinding StringFormat="{}{0} / {1}">
+                                <Binding Path="TotalAchievedLabel" />
+                                <Binding Path="TotalTargetLabel" />
+                            </MultiBinding>
+                        </Label.Text>
+                    </Label>
+                    <Label Grid.Column="1" Text="{Binding OverallProgressLabel}" FontAttributes="Bold" Style="{StaticResource Body}" />
+                </Grid>
+                <ProgressBar Progress="{Binding OverallProgress}" ProgressColor="#10B981" HeightRequest="10" />
+            </VerticalStackLayout>
+        </Border>
+
+        <!-- Lista -->
+        <RefreshView Grid.Row="1" IsRefreshing="{Binding IsBusy}" Command="{Binding LoadCommand}">
+            <CollectionView ItemsSource="{Binding Goals}" SelectionMode="None">
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout Padding="20" Spacing="8">
+                        <Label Text="Aún no tienes metas activas." Style="{StaticResource Muted}" HorizontalTextAlignment="Center" />
+                        <Label Text="Toca ➕ para crear tu primera meta de ahorro." Style="{StaticResource Muted}" HorizontalTextAlignment="Center" />
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="vm:GoalRow">
+                        <SwipeView>
+                            <SwipeView.RightItems>
+                                <SwipeItems>
+                                    <SwipeItem Text="+ Aporte" BackgroundColor="#10B981"
+                                               Command="{Binding BindingContext.ContributeCommand, Source={x:Reference pageRoot}}"
+                                               CommandParameter="{Binding .}" />
+                                    <SwipeItem Text="Editar" BackgroundColor="#3B82F6"
+                                               Command="{Binding BindingContext.EditCommand, Source={x:Reference pageRoot}}"
+                                               CommandParameter="{Binding .}" />
+                                    <SwipeItem Text="Eliminar" BackgroundColor="#EF4444"
+                                               Command="{Binding BindingContext.DeleteCommand, Source={x:Reference pageRoot}}"
+                                               CommandParameter="{Binding .}" />
+                                </SwipeItems>
+                            </SwipeView.RightItems>
+                            <Border Style="{StaticResource Card}" Margin="0,4">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer
+                                        Command="{Binding BindingContext.EditCommand, Source={x:Reference pageRoot}}"
+                                        CommandParameter="{Binding .}" />
+                                </Border.GestureRecognizers>
+                                <VerticalStackLayout Spacing="6">
+
+                                    <!-- Cabecera -->
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <Label Grid.Column="0" Text="{Binding Name}" Style="{StaticResource H2}" />
+                                        <Label Grid.Column="1" Text="{Binding Status}" FontAttributes="Bold"
+                                               TextColor="{Binding StatusColor}" />
+                                    </Grid>
+
+                                    <!-- Importes -->
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <Label Grid.Column="0" Style="{StaticResource Body}">
+                                            <Label.Text>
+                                                <MultiBinding StringFormat="{}{0} / {1}">
+                                                    <Binding Path="AchievedLabel" />
+                                                    <Binding Path="TargetLabel" />
+                                                </MultiBinding>
+                                            </Label.Text>
+                                        </Label>
+                                        <Label Grid.Column="1" Text="{Binding ProgressLabel}" Style="{StaticResource Muted}" />
+                                    </Grid>
+
+                                    <ProgressBar Progress="{Binding Progress}" ProgressColor="{Binding StatusColor}" HeightRequest="10" />
+
+                                    <!-- Detalle -->
+                                    <Label Style="{StaticResource Muted}" FontSize="11">
+                                        <Label.Text>
+                                            <MultiBinding StringFormat="Restante: {0}  ·  {1}">
+                                                <Binding Path="RemainingLabel" />
+                                                <Binding Path="DeadlineLabel" />
+                                            </MultiBinding>
+                                        </Label.Text>
+                                    </Label>
+                                    <Label Text="{Binding RecommendedLabel}" Style="{StaticResource Muted}" FontSize="11" />
+                                    <Label Text="{Binding PaceLabel}" Style="{StaticResource Muted}" FontSize="11" />
+                                    <Label Text="{Binding Notes}" Style="{StaticResource Muted}" FontSize="11" IsVisible="{Binding HasNotes}" />
+
+                                    <!-- Acción rápida -->
+                                    <Button Text="+ Aporte" Style="{StaticResource ButtonGhost}" HeightRequest="36"
+                                            Command="{Binding BindingContext.ContributeCommand, Source={x:Reference pageRoot}}"
+                                            CommandParameter="{Binding .}" />
+                                </VerticalStackLayout>
+                            </Border>
+                        </SwipeView>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </RefreshView>
+
+        <Button Grid.Row="2" Text="➕ Nueva meta" Command="{Binding AddCommand}" />
+
+    </Grid>
+</ContentPage>

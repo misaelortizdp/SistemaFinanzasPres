@@ -150,5 +150,17 @@ public static class DbSeeder
                 NetWorth REAL NOT NULL DEFAULT 0,
                 Notes TEXT NULL
             );");
+
+        foreach (var sql in new[]
+        {
+            "ALTER TABLE SavingsGoals ADD COLUMN Deadline TEXT NULL;",
+            "ALTER TABLE SavingsGoals ADD COLUMN MonthlyPlanned REAL NOT NULL DEFAULT 0;",
+            "ALTER TABLE SavingsGoals ADD COLUMN IsActive INTEGER NOT NULL DEFAULT 1;",
+            "ALTER TABLE SavingsGoals ADD COLUMN Notes TEXT NULL;",
+        })
+        {
+            try { await db.Database.ExecuteSqlRawAsync(sql); }
+            catch { /* column already exists */ }
+        }
     }
 }

@@ -47,6 +47,7 @@ public class AppDbContext : DbContext
 
         b.Entity<SavingsGoal>().Property(x => x.Target).HasConversion<double>();
         b.Entity<SavingsGoal>().Property(x => x.Achieved).HasConversion<double>();
+        b.Entity<SavingsGoal>().Property(x => x.MonthlyPlanned).HasConversion<double>();
 
         b.Entity<Income>().Property(x => x.Amount).HasConversion<double>();
 
