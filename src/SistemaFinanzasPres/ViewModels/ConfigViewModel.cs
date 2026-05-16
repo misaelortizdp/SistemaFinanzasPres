@@ -46,6 +46,9 @@ public partial class ConfigViewModel : BaseViewModel
     [ObservableProperty] private string ahorroMinPctText = "20";
     [ObservableProperty] private string ahorroOptPctText = "30";
 
+    [ObservableProperty] private bool autoSnapshotEnabled = true;
+    [ObservableProperty] private int autoSnapshotDay = 1;
+
     private decimal _ingresoTotal;
     private decimal _diezmoPctValue = 0.10m;
 
@@ -63,6 +66,8 @@ public partial class ConfigViewModel : BaseViewModel
         FondoMeses = cfg.FondoEmergenciaMeses;
         AhorroMinPctText = (cfg.MetaAhorroMinimoPct * 100m).ToString("0.##");
         AhorroOptPctText = (cfg.MetaAhorroOptimoPct * 100m).ToString("0.##");
+        AutoSnapshotEnabled = cfg.AutoSnapshotEnabled;
+        AutoSnapshotDay = Math.Clamp(cfg.AutoSnapshotDay, 1, 28);
 
         var list = await _incomes.GetForMonthAsync(_month.Year, _month.Month);
         Ingresos.Clear();
@@ -142,6 +147,8 @@ public partial class ConfigViewModel : BaseViewModel
         cfg.FondoEmergenciaMeses = FondoMeses;
         if (decimal.TryParse(AhorroMinPctText, out var amin)) cfg.MetaAhorroMinimoPct = amin / 100m;
         if (decimal.TryParse(AhorroOptPctText, out var aopt)) cfg.MetaAhorroOptimoPct = aopt / 100m;
+        cfg.AutoSnapshotEnabled = AutoSnapshotEnabled;
+        cfg.AutoSnapshotDay = Math.Clamp(AutoSnapshotDay, 1, 28);
 
         await _db.SaveChangesAsync();
         await Shell.Current.DisplayAlert("Configuración", "Cambios guardados.", "OK");

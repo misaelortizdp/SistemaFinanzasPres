@@ -1,4 +1,5 @@
 using SistemaFinanzasPres.Data;
+using SistemaFinanzasPres.Services;
 
 namespace SistemaFinanzasPres;
 
@@ -24,5 +25,12 @@ public partial class App : Application
         using var scope = _services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await DbSeeder.EnsureCreatedAndSeedAsync(db);
+
+        try
+        {
+            var netWorth = scope.ServiceProvider.GetRequiredService<NetWorthService>();
+            await netWorth.EnsureMonthlySnapshotAsync();
+        }
+        catch { /* no bloquear el arranque si falla */ }
     }
 }

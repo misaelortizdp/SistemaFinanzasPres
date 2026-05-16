@@ -47,6 +47,8 @@ public partial class PatrimonioViewModel : BaseViewModel
         {
             IsBusy = true;
 
+            try { await _svc.EnsureMonthlySnapshotAsync(); } catch { }
+
             var b = await _svc.GetCurrentAsync();
             Assets.Clear();
             foreach (var a in b.Assets) Assets.Add(a);

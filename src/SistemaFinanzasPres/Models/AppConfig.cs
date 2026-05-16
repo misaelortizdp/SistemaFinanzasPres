@@ -19,5 +19,8 @@ public class AppConfig
 
     public int CategoriaDiezmoId { get; set; }
 
+    public bool AutoSnapshotEnabled { get; set; } = true;
+    public int AutoSnapshotDay { get; set; } = 1;
+
     public decimal IngresoTotal => SalarioNeto + OtrosIngresos;
 }

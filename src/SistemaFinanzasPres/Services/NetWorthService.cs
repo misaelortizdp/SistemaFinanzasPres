@@ -68,4 +68,21 @@ public class NetWorthService
         _db.NetWorthSnapshots.Remove(s);
         await _db.SaveChangesAsync();
     }
+
+    public async Task<bool> EnsureMonthlySnapshotAsync()
+    {
+        var cfg = await _db.AppConfigs.AsNoTracking().FirstOrDefaultAsync();
+        if (cfg is null || !cfg.AutoSnapshotEnabled) return false;
+
+        var today = DateTime.Today;
+        var day = Math.Clamp(cfg.AutoSnapshotDay, 1, 28);
+        if (today.Day < day) return false;
+
+        var existsThisMonth = await _db.NetWorthSnapshots
+            .AnyAsync(s => s.Date.Year == today.Year && s.Date.Month == today.Month);
+        if (existsThisMonth) return false;
+
+        await TakeSnapshotAsync($"Snapshot automático {today:MMM yyyy}");
+        return true;
+    }
 }
