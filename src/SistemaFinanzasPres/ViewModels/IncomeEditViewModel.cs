@@ -21,6 +21,7 @@ public partial class IncomeEditViewModel : BaseViewModel
     }
 
     [ObservableProperty] private int incomeId;
+    [ObservableProperty] private bool isExisting;
     [ObservableProperty] private DateTime date = DateTime.Today;
     [ObservableProperty] private string concept = string.Empty;
     [ObservableProperty] private string amountText = "0";
@@ -49,6 +50,7 @@ public partial class IncomeEditViewModel : BaseViewModel
                 Notes = i.Notes;
                 IsRecurring = i.IsRecurring;
                 Title = "Editar ingreso";
+                IsExisting = true;
             }
         }
     }
@@ -92,6 +94,16 @@ public partial class IncomeEditViewModel : BaseViewModel
             });
         }
 
+        await Shell.Current.GoToAsync("..");
+    }
+
+    [RelayCommand]
+    private async Task DeleteAsync()
+    {
+        if (IncomeId <= 0) return;
+        var ok = await Shell.Current.DisplayAlert("Eliminar", "¿Eliminar este ingreso?", "Sí", "No");
+        if (!ok) return;
+        await _incomes.DeleteAsync(IncomeId);
         await Shell.Current.GoToAsync("..");
     }
 
