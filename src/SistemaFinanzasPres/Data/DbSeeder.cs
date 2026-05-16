@@ -140,5 +140,15 @@ public static class DbSeeder
                 "ALTER TABLE AppConfigs ADD COLUMN DiezmoPct REAL NOT NULL DEFAULT 0.10;");
         }
         catch { /* column already exists */ }
+
+        await db.Database.ExecuteSqlRawAsync(@"
+            CREATE TABLE IF NOT EXISTS NetWorthSnapshots (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                Date TEXT NOT NULL,
+                Assets REAL NOT NULL DEFAULT 0,
+                Liabilities REAL NOT NULL DEFAULT 0,
+                NetWorth REAL NOT NULL DEFAULT 0,
+                Notes TEXT NULL
+            );");
     }
 }

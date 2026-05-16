@@ -115,6 +115,10 @@ public partial class ConfigViewModel : BaseViewModel
     private async Task GoToDebtsAsync()
         => await Shell.Current.GoToAsync(nameof(DebtsPage));
 
+    [RelayCommand]
+    private async Task GoToPatrimonioAsync()
+        => await Shell.Current.GoToAsync(nameof(PatrimonioPage));
+
     [RelayCommand] private void PrevMonth() { _month.Shift(-1); _ = LoadAsync(); }
     [RelayCommand] private void NextMonth() { _month.Shift(1); _ = LoadAsync(); }
 

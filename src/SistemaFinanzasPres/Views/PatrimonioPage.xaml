@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:SistemaFinanzasPres.ViewModels"
+             xmlns:svc="clr-namespace:SistemaFinanzasPres.Services"
+             x:Class="SistemaFinanzasPres.Views.PatrimonioPage"
+             x:Name="pageRoot"
+             x:DataType="vm:PatrimonioViewModel"
+             Title="Balance patrimonial">
+
+    <RefreshView IsRefreshing="{Binding IsBusy}" Command="{Binding LoadCommand}">
+    <ScrollView>
+        <VerticalStackLayout Padding="14" Spacing="12">
+
+            <!-- Patrimonio neto -->
+            <Border Style="{StaticResource Card}">
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="💎 Patrimonio neto" Style="{StaticResource Muted}" />
+                    <Label Text="{Binding NetWorthLabel}" FontSize="34" FontAttributes="Bold"
+                           TextColor="{Binding NetWorthColor}" />
+                    <Label Text="{Binding NetWorthHint}" Style="{StaticResource Muted}" />
+                    <BoxView HeightRequest="1" Color="#E5E7EB" Margin="0,4" />
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                        <VerticalStackLayout Grid.Column="0">
+                            <Label Text="🟢 Activos" Style="{StaticResource Muted}" />
+                            <Label Text="{Binding TotalAssetsLabel}" Style="{StaticResource H2}" TextColor="#10B981" />
+                        </VerticalStackLayout>
+                        <VerticalStackLayout Grid.Column="1">
+                            <Label Text="🔴 Pasivos" Style="{StaticResource Muted}" />
+                            <Label Text="{Binding TotalLiabilitiesLabel}" Style="{StaticResource H2}" TextColor="#EF4444" />
+                        </VerticalStackLayout>
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Tomar snapshot -->
+            <Button Text="📸 Tomar snapshot ahora" Command="{Binding TakeSnapshotCommand}" />
+
+            <!-- Activos -->
+            <Label Text="🟢 Activos (cuentas activas)" Style="{StaticResource H2}" Margin="0,8,0,0" />
+            <Border Style="{StaticResource Card}">
+                <VerticalStackLayout Spacing="4">
+                    <CollectionView ItemsSource="{Binding Assets}" SelectionMode="None">
+                        <CollectionView.EmptyView>
+                            <Label Text="Sin cuentas activas." Style="{StaticResource Muted}" />
+                        </CollectionView.EmptyView>
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="svc:NetWorthLine">
+                                <Grid ColumnDefinitions="*,Auto" Padding="2,4">
+                                    <Label Grid.Column="0" Text="{Binding Name}" Style="{StaticResource Body}" />
+                                    <Label Grid.Column="1" Text="{Binding Amount, StringFormat='{0:C0}'}"
+                                           FontAttributes="Bold" Style="{StaticResource Body}" TextColor="#10B981" />
+                                </Grid>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Pasivos -->
+            <Label Text="🔴 Pasivos (deudas activas)" Style="{StaticResource H2}" Margin="0,8,0,0" />
+            <Border Style="{StaticResource Card}">
+                <VerticalStackLayout Spacing="4">
+                    <CollectionView ItemsSource="{Binding Liabilities}" SelectionMode="None">
+                        <CollectionView.EmptyView>
+                            <Label Text="🎉 Sin deudas activas." Style="{StaticResource Muted}" />
+                        </CollectionView.EmptyView>
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="svc:NetWorthLine">
+                                <Grid ColumnDefinitions="*,Auto" Padding="2,4">
+                                    <Label Grid.Column="0" Text="{Binding Name}" Style="{StaticResource Body}" />
+                                    <Label Grid.Column="1" Text="{Binding Amount, StringFormat='{0:C0}'}"
+                                           FontAttributes="Bold" Style="{StaticResource Body}" TextColor="#EF4444" />
+                                </Grid>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Historial -->
+            <Label Text="📅 Historial de snapshots" Style="{StaticResource H2}" Margin="0,8,0,0" />
+            <Label Text="Aún no has guardado snapshots. Toma uno para empezar a medir tu evolución."
+                   Style="{StaticResource Muted}"
+                   IsVisible="{Binding HasSnapshots, Converter={StaticResource InvertedBoolConverter}}" />
+
+            <CollectionView ItemsSource="{Binding Snapshots}" SelectionMode="None"
+                            IsVisible="{Binding HasSnapshots}">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="vm:SnapshotRow">
+                        <SwipeView>
+                            <SwipeView.RightItems>
+                                <SwipeItems>
+                                    <SwipeItem Text="Eliminar" BackgroundColor="#EF4444"
+                                               Command="{Binding BindingContext.DeleteSnapshotCommand, Source={x:Reference pageRoot}}"
+                                               CommandParameter="{Binding .}" />
+                                </SwipeItems>
+                            </SwipeView.RightItems>
+                            <Border Style="{StaticResource Card}" Margin="0,4">
+                                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="2">
+                                    <Label Grid.Row="0" Grid.Column="0" Text="{Binding DateLabel}" Style="{StaticResource Body}" FontAttributes="Bold" />
+                                    <Label Grid.Row="0" Grid.Column="1" Text="{Binding NetWorthLabel}"
+                                           FontAttributes="Bold" Style="{StaticResource Body}" />
+                                    <Label Grid.Row="1" Grid.Column="0" Style="{StaticResource Muted}" FontSize="11">
+                                        <Label.Text>
+                                            <MultiBinding StringFormat="Act {0} · Pas {1}">
+                                                <Binding Path="AssetsLabel" />
+                                                <Binding Path="LiabilitiesLabel" />
+                                            </MultiBinding>
+                                        </Label.Text>
+                                    </Label>
+                                    <Label Grid.Row="1" Grid.Column="1" Text="{Binding DeltaLabel}"
+                                           FontSize="11" FontAttributes="Bold"
+                                           TextColor="{Binding DeltaColor}" />
+                                    <Label Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
+                                           Text="{Binding Notes}" Style="{StaticResource Muted}" FontSize="11"
+                                           IsVisible="{Binding HasNotes}" />
+                                </Grid>
+                            </Border>
+                        </SwipeView>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+        </VerticalStackLayout>
+    </ScrollView>
+    </RefreshView>
+</ContentPage>

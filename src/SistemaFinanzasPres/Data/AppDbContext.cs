@@ -14,6 +14,7 @@ public class AppDbContext : DbContext
     public DbSet<Income> Incomes => Set<Income>();
     public DbSet<Debt> Debts => Set<Debt>();
     public DbSet<DebtPayment> DebtPayments => Set<DebtPayment>();
+    public DbSet<NetWorthSnapshot> NetWorthSnapshots => Set<NetWorthSnapshot>();
 
     public static string DbPath =>
         Path.Combine(FileSystem.AppDataDirectory, "finanzas.db3");
@@ -62,5 +63,9 @@ public class AppDbContext : DbContext
             .WithMany()
             .HasForeignKey(p => p.DebtId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        b.Entity<NetWorthSnapshot>().Property(x => x.Assets).HasConversion<double>();
+        b.Entity<NetWorthSnapshot>().Property(x => x.Liabilities).HasConversion<double>();
+        b.Entity<NetWorthSnapshot>().Property(x => x.NetWorth).HasConversion<double>();
     }
 }
