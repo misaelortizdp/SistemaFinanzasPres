@@ -45,11 +45,6 @@
                                     <Label Grid.Column="1" Text="{Binding AmountLabel}"
                                            FontAttributes="Bold" TextColor="#10B981"
                                            Style="{StaticResource Body}" VerticalTextAlignment="Center" />
-                                    <Grid.GestureRecognizers>
-                                        <TapGestureRecognizer
-                                            Command="{Binding BindingContext.EditIncomeCommand, Source={x:Reference pageRoot}}"
-                                            CommandParameter="{Binding .}" />
-                                    </Grid.GestureRecognizers>
                                 </Grid>
                             </DataTemplate>
                         </CollectionView.ItemTemplate>
@@ -60,10 +55,9 @@
                         <Label Grid.Column="0" Text="Ingreso total" Style="{StaticResource Muted}" />
                         <Label Grid.Column="1" Text="{Binding IngresoTotalLabel}" FontAttributes="Bold" Style="{StaticResource Body}" />
                     </Grid>
-                    <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
-                        <Button Grid.Column="0" Text="➕ Nuevo ingreso" Command="{Binding AddIncomeCommand}" />
-                        <Button Grid.Column="1" Text="📋 Ver todos" Style="{StaticResource ButtonGhost}" Command="{Binding GoToIncomesCommand}" />
-                    </Grid>
+                    <Button Text="📋 Gestionar en Movimientos" Style="{StaticResource ButtonGhost}" Command="{Binding GoToIncomesCommand}" />
+                    <Label Text="💡 Los ingresos se crean, editan y eliminan en la pestaña Movimientos."
+                           Style="{StaticResource Muted}" FontSize="11" />
                 </VerticalStackLayout>
             </Border>
 

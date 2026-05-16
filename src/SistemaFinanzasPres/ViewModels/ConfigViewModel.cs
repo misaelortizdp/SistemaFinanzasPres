@@ -101,18 +101,7 @@ public partial class ConfigViewModel : BaseViewModel
 
     [RelayCommand]
     private async Task GoToIncomesAsync()
-        => await Shell.Current.GoToAsync(nameof(IncomesPage));
-
-    [RelayCommand]
-    private async Task AddIncomeAsync()
-        => await Shell.Current.GoToAsync(nameof(IncomeEditPage));
-
-    [RelayCommand]
-    private async Task EditIncomeAsync(IncomeRow? row)
-    {
-        if (row is null) return;
-        await Shell.Current.GoToAsync($"{nameof(IncomeEditPage)}?id={row.Id}");
-    }
+        => await Shell.Current.GoToAsync("//movements");
 
     [RelayCommand]
     private async Task GoToCategoriesAsync()
