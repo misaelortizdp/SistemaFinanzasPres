@@ -133,5 +133,12 @@ public static class DbSeeder
                 Notes TEXT NULL,
                 FOREIGN KEY (DebtId) REFERENCES Debts(Id) ON DELETE CASCADE
             );");
+
+        try
+        {
+            await db.Database.ExecuteSqlRawAsync(
+                "ALTER TABLE AppConfigs ADD COLUMN DiezmoPct REAL NOT NULL DEFAULT 0.10;");
+        }
+        catch { /* column already exists */ }
     }
 }

@@ -44,8 +44,8 @@ public partial class BudgetViewModel : BaseViewModel
             MonthLabel = _month.Label;
 
             var snap = await _budgetSvc.GetSnapshotAsync(_month.Year, _month.Month);
-            _ingresoBase = snap.IngresoTotal;
-            IngresoLabel = snap.IngresoTotal.ToString("C0");
+            _ingresoBase = snap.IngresoDisponible;
+            IngresoLabel = snap.IngresoDisponible.ToString("C0");
 
             foreach (var row in Rows)
                 row.PropertyChanged -= OnRowChanged;

@@ -49,13 +49,15 @@ public partial class DashboardViewModel : BaseViewModel
             MonthLabel = _month.Label;
             var snap = await _budget.GetSnapshotAsync(_month.Year, _month.Month);
 
-            Ingreso = snap.IngresoTotal.ToString("C0");
-            IngresoSource = snap.UsedTransactionalIncome ? "Ingresos registrados" : "Salario configurado";
+            Ingreso = snap.IngresoDisponible.ToString("C0");
+            IngresoSource = snap.IngresoTotal > 0
+                ? $"Total {snap.IngresoTotal:C0} − Diezmo {snap.DiezmoMonto:C0}"
+                : "Sin ingresos registrados";
             TotalGastado = snap.TotalSpent.ToString("C0");
-            Disponible = (snap.IngresoTotal - snap.TotalSpent).ToString("C0");
-            PctEjecutado = (snap.IngresoTotal > 0 ? snap.TotalSpent / snap.IngresoTotal : 0m).ToString("P1");
-            var ahorro = snap.Pillars.First(p => p.Pillar == Models.Pillar.Ahorro);
-            TasaAhorro = (snap.IngresoTotal > 0 ? ahorro.Spent / snap.IngresoTotal : 0m).ToString("P1");
+            Disponible = (snap.IngresoDisponible - snap.TotalSpent).ToString("C0");
+            PctEjecutado = (snap.IngresoDisponible > 0 ? snap.TotalSpent / snap.IngresoDisponible : 0m).ToString("P1");
+            var ahorro = snap.Pillars.FirstOrDefault(p => p.Pillar == Models.Pillar.Ahorro);
+            TasaAhorro = (snap.IngresoDisponible > 0 && ahorro != null ? ahorro.Spent / snap.IngresoDisponible : 0m).ToString("P1");
 
             var proj = snap.Projection;
             ShowProjection = proj.IsCurrentMonth && snap.IngresoDisponible > 0;

@@ -38,6 +38,7 @@ public record MonthProjection(
 public record BudgetSnapshot(
     AppConfig Config,
     decimal IngresoTotal,
+    decimal DiezmoMonto,
     decimal IngresoDisponible,
     bool UsedTransactionalIncome,
     decimal TotalBudgeted,
@@ -59,7 +60,7 @@ public class BudgetService
         var config = await _db.AppConfigs.AsNoTracking().FirstAsync(ct);
 
         var categories = await _db.Categories.AsNoTracking()
-            .Where(c => c.IsActive)
+            .Where(c => c.IsActive && c.Pillar != Pillar.PrimerFruto)
             .OrderBy(c => c.SortOrder)
             .ToListAsync(ct);
 
@@ -98,12 +99,10 @@ public class BudgetService
             return new CategoryStatus(c.Id, c.Name, c.Pillar, b, s, b - s, pct, status);
         }).ToList();
 
-        var diezmoBudget = rows.Where(r => r.Pillar == Pillar.PrimerFruto).Sum(r => r.Budgeted);
-
-        var transactionalIncome = incomesInMonth.Sum();
-        var usedTransactional = transactionalIncome > 0;
-        var ingresoTotal = usedTransactional ? transactionalIncome : config.IngresoTotal;
-        var ingresoDisponible = ingresoTotal - diezmoBudget;
+        var ingresoTotal = incomesInMonth.Sum();
+        var usedTransactional = ingresoTotal > 0;
+        var diezmoMonto = ingresoTotal * config.DiezmoPct;
+        var ingresoDisponible = ingresoTotal - diezmoMonto;
 
         PillarSummary BuildPillar(Pillar p, decimal metaPct)
         {
@@ -112,15 +111,12 @@ public class BudgetService
             var s = items.Sum(x => x.Spent);
             var pctBase = ingresoDisponible > 0 ? s / ingresoDisponible : 0m;
             var meta = ingresoDisponible * metaPct;
-            string status = p == Pillar.PrimerFruto
-                ? "🙏 Pre-comprometido"
-                : (pctBase <= metaPct ? "✅ Dentro meta" : "⚠️ Sobre meta");
+            string status = pctBase <= metaPct ? "✅ Dentro meta" : "⚠️ Sobre meta";
             return new PillarSummary(p, b, s, b - s, pctBase, metaPct, meta, status);
         }
 
         var pillars = new List<PillarSummary>
         {
-            BuildPillar(Pillar.PrimerFruto, 0m),
             BuildPillar(Pillar.Necesidad,   config.MetaNecesidadesPct),
             BuildPillar(Pillar.Deseo,       config.MetaDeseosPct),
             BuildPillar(Pillar.Ahorro,      config.MetaAhorroPct),
@@ -130,10 +126,10 @@ public class BudgetService
         var totalS = rows.Sum(r => r.Spent);
         var pctExec = totalB > 0 ? totalS / totalB : 0m;
 
-        var projection = BuildProjection(year, month, totalS, ingresoTotal);
+        var projection = BuildProjection(year, month, totalS, ingresoDisponible);
 
         return new BudgetSnapshot(
-            config, ingresoTotal, ingresoDisponible, usedTransactional,
+            config, ingresoTotal, diezmoMonto, ingresoDisponible, usedTransactional,
             totalB, totalS, totalB - totalS, pctExec,
             rows, pillars, projection);
     }
