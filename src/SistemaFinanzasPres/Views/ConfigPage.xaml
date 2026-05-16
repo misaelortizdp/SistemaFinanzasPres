@@ -3,36 +3,92 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:SistemaFinanzasPres.ViewModels"
              x:Class="SistemaFinanzasPres.Views.ConfigPage"
+             x:Name="pageRoot"
              x:DataType="vm:ConfigViewModel"
              Title="Configuración">
 
     <ScrollView>
         <VerticalStackLayout Padding="14" Spacing="12">
 
-            <!-- ── Ingreso base ─────────────────────────────── -->
-            <Label Text="💰 Ingreso base mensual" Style="{StaticResource H2}" />
+            <!-- ── Mes ─────────────────────────────────────── -->
+            <Grid ColumnDefinitions="Auto,*,Auto" VerticalOptions="Center">
+                <Button Grid.Column="0" Text="◀" Command="{Binding PrevMonthCommand}" WidthRequest="48" />
+                <Label Grid.Column="1" Text="{Binding MonthLabel}" Style="{StaticResource H2}" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                <Button Grid.Column="2" Text="▶" Command="{Binding NextMonthCommand}" WidthRequest="48" />
+            </Grid>
+
+            <!-- ── Ingresos del mes ─────────────────────────── -->
+            <Label Text="💰 Ingresos del mes" Style="{StaticResource H2}" />
             <Border Style="{StaticResource Card}">
                 <VerticalStackLayout Spacing="8">
-                    <Label Text="Salario neto" Style="{StaticResource Muted}" />
-                    <Entry Text="{Binding SalarioText}" Keyboard="Numeric" Placeholder="0" />
-                    <Label Text="Otros ingresos recurrentes" Style="{StaticResource Muted}" />
-                    <Entry Text="{Binding OtrosText}" Keyboard="Numeric" Placeholder="0" />
+
+                    <Label Text="Aún no hay ingresos registrados este mes."
+                           Style="{StaticResource Muted}"
+                           IsVisible="{Binding SinIngresos}" />
+
+                    <CollectionView ItemsSource="{Binding Ingresos}" SelectionMode="None"
+                                    IsVisible="{Binding SinIngresos, Converter={StaticResource InvertedBoolConverter}}">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="vm:IncomeRow">
+                                <Grid ColumnDefinitions="*,Auto" Padding="2,5">
+                                    <VerticalStackLayout Grid.Column="0">
+                                        <Label Text="{Binding Concept}" Style="{StaticResource Body}" FontAttributes="Bold" />
+                                        <Label Style="{StaticResource Muted}" FontSize="11">
+                                            <Label.Text>
+                                                <MultiBinding StringFormat="{}{0:dd MMM} · {1}">
+                                                    <Binding Path="Date" />
+                                                    <Binding Path="Source" />
+                                                </MultiBinding>
+                                            </Label.Text>
+                                        </Label>
+                                    </VerticalStackLayout>
+                                    <Label Grid.Column="1" Text="{Binding AmountLabel}"
+                                           FontAttributes="Bold" TextColor="#10B981"
+                                           Style="{StaticResource Body}" VerticalTextAlignment="Center" />
+                                    <Grid.GestureRecognizers>
+                                        <TapGestureRecognizer
+                                            Command="{Binding BindingContext.EditIncomeCommand, Source={x:Reference pageRoot}}"
+                                            CommandParameter="{Binding .}" />
+                                    </Grid.GestureRecognizers>
+                                </Grid>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+
                     <BoxView HeightRequest="1" Color="{StaticResource TextMuted}" Opacity="0.2" />
                     <Grid ColumnDefinitions="*,Auto">
                         <Label Grid.Column="0" Text="Ingreso total" Style="{StaticResource Muted}" />
-                        <Label Grid.Column="1" Text="{Binding IngresoTotal}" FontAttributes="Bold" Style="{StaticResource Body}" />
+                        <Label Grid.Column="1" Text="{Binding IngresoTotalLabel}" FontAttributes="Bold" Style="{StaticResource Body}" />
                     </Grid>
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                        <Button Grid.Column="0" Text="➕ Nuevo ingreso" Command="{Binding AddIncomeCommand}" />
+                        <Button Grid.Column="1" Text="📋 Ver todos" Style="{StaticResource ButtonGhost}" Command="{Binding GoToIncomesCommand}" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- ── Diezmo / Primer Fruto ────────────────────── -->
+            <Label Text="🙏 Diezmo / Primer Fruto" Style="{StaticResource H2}" />
+            <Border Style="{StaticResource Card}">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="% del ingreso total" Style="{StaticResource Muted}" />
+                    <Entry Text="{Binding DiezmoPctText}" Keyboard="Numeric" Placeholder="10" />
                     <Grid ColumnDefinitions="*,Auto">
-                        <Label Grid.Column="0" Text="Disponible (sin diezmo)" Style="{StaticResource Muted}" />
-                        <Label Grid.Column="1" Text="{Binding IngresoDisponible}" FontAttributes="Bold" Style="{StaticResource Body}" TextColor="#0F766E" />
+                        <Label Grid.Column="0" Text="Monto diezmo" Style="{StaticResource Muted}" />
+                        <Label Grid.Column="1" Text="{Binding DiezmoAmountLabel}" FontAttributes="Bold" Style="{StaticResource Body}" />
                     </Grid>
-                    <Label Text="💡 Si registras ingresos en el mes (Configuración → Ingresos), se usan en lugar de este valor fijo."
-                           Style="{StaticResource Muted}" />
+                    <BoxView HeightRequest="1" Color="{StaticResource TextMuted}" Opacity="0.2" />
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label Grid.Column="0" Text="Disponible (después del diezmo)" Style="{StaticResource Muted}" />
+                        <Label Grid.Column="1" Text="{Binding IngresoDisponibleLabel}" FontAttributes="Bold" Style="{StaticResource Body}" TextColor="#0F766E" />
+                    </Grid>
+                    <Label Text="💡 El diezmo se descuenta directo del total. Las categorías Primer Fruto no aparecen en el presupuesto."
+                           Style="{StaticResource Muted}" FontSize="11" />
                 </VerticalStackLayout>
             </Border>
 
             <!-- ── Distribución 50/30/20 ───────────────────── -->
-            <Label Text="🎯 Distribución del ingreso (%)" Style="{StaticResource H2}" />
+            <Label Text="🎯 Distribución del disponible (%)" Style="{StaticResource H2}" />
             <Border Style="{StaticResource Card}">
                 <VerticalStackLayout Spacing="10">
                     <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="4">

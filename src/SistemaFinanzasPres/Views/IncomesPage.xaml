@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:SistemaFinanzasPres.ViewModels"
+             xmlns:models="clr-namespace:SistemaFinanzasPres.Models"
+             x:Class="SistemaFinanzasPres.Views.IncomesPage"
+             x:Name="pageRoot"
+             x:DataType="vm:IncomesViewModel"
+             Title="Ingresos">
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto" Padding="14" RowSpacing="8">
+
+        <!-- Month nav -->
+        <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto">
+            <Button Grid.Column="0" Text="◀" Command="{Binding PrevMonthCommand}" WidthRequest="48" />
+            <Label Grid.Column="1" Text="{Binding MonthLabel}" Style="{StaticResource H2}" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+            <Button Grid.Column="2" Text="▶" Command="{Binding NextMonthCommand}" WidthRequest="48" />
+        </Grid>
+
+        <!-- Total card -->
+        <Border Grid.Row="1" Style="{StaticResource Card}">
+            <Grid ColumnDefinitions="*,Auto">
+                <Label Grid.Column="0" Text="Total ingresos del mes" Style="{StaticResource Muted}" VerticalTextAlignment="Center" />
+                <Label Grid.Column="1" Text="{Binding TotalLabel}" Style="{StaticResource H2}" TextColor="#10B981" />
+            </Grid>
+        </Border>
+
+        <!-- List -->
+        <RefreshView Grid.Row="2" IsRefreshing="{Binding IsBusy}" Command="{Binding LoadCommand}">
+            <CollectionView ItemsSource="{Binding Items}" SelectionMode="None">
+                <CollectionView.EmptyView>
+                    <Label Text="Sin ingresos este mes. Toca ➕ para agregar." Style="{StaticResource Muted}"
+                           HorizontalTextAlignment="Center" Margin="0,40" />
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:Income">
+                        <SwipeView>
+                            <SwipeView.RightItems>
+                                <SwipeItems>
+                                    <SwipeItem Text="Editar" BackgroundColor="#3B82F6"
+                                               Command="{Binding BindingContext.EditCommand, Source={x:Reference pageRoot}}"
+                                               CommandParameter="{Binding .}" />
+                                    <SwipeItem Text="Eliminar" BackgroundColor="#EF4444"
+                                               Command="{Binding BindingContext.DeleteCommand, Source={x:Reference pageRoot}}"
+                                               CommandParameter="{Binding .}" />
+                                </SwipeItems>
+                            </SwipeView.RightItems>
+                            <Border Style="{StaticResource Card}" Margin="0,4">
+                                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="2">
+                                    <Label Grid.Row="0" Grid.Column="0" Text="{Binding Concept}" Style="{StaticResource Body}" FontAttributes="Bold" />
+                                    <Label Grid.Row="0" Grid.Column="1" Text="{Binding Amount, StringFormat='+{0:C0}'}"
+                                           Style="{StaticResource Body}" FontAttributes="Bold" TextColor="#10B981" />
+                                    <Label Grid.Row="1" Grid.Column="0" Style="{StaticResource Muted}" FontSize="11">
+                                        <Label.Text>
+                                            <MultiBinding StringFormat="{}{0:dd MMM yyyy} · {1}">
+                                                <Binding Path="Date" />
+                                                <Binding Path="Source" />
+                                            </MultiBinding>
+                                        </Label.Text>
+                                    </Label>
+                                    <Label Grid.Row="1" Grid.Column="1" Text="{Binding Notes}" Style="{StaticResource Muted}" FontSize="11" HorizontalTextAlignment="End" />
+                                    <Grid.GestureRecognizers>
+                                        <TapGestureRecognizer
+                                            Command="{Binding BindingContext.EditCommand, Source={x:Reference pageRoot}}"
+                                            CommandParameter="{Binding .}" />
+                                    </Grid.GestureRecognizers>
+                                </Grid>
+                            </Border>
+                        </SwipeView>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </RefreshView>
+
+        <!-- Add button -->
+        <Button Grid.Row="3" Text="➕ Agregar ingreso" Command="{Binding AddCommand}" />
+
+    </Grid>
+</ContentPage>

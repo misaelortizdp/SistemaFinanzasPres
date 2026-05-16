@@ -34,7 +34,7 @@ public class KpiService
         var necPilar = snap.Pillars.First(p => p.Pillar == Pillar.Necesidad);
         var desPilar = snap.Pillars.First(p => p.Pillar == Pillar.Deseo);
 
-        var tasaAhorro = snap.IngresoTotal > 0 ? ahorroPilar.Spent / snap.IngresoTotal : 0m;
+        var tasaAhorro = snap.IngresoDisponible > 0 ? ahorroPilar.Spent / snap.IngresoDisponible : 0m;
 
         var start = new DateTime(year, month, 1);
         var end = start.AddMonths(1);
@@ -56,7 +56,7 @@ public class KpiService
             .Distinct()
             .CountAsync();
 
-        var ahorroProgress = (double)Math.Min(1m, snap.IngresoTotal > 0 ? tasaAhorro / 0.20m : 0m);
+        var ahorroProgress = (double)Math.Min(1m, snap.IngresoDisponible > 0 ? tasaAhorro / 0.20m : 0m);
         var necProgress = (double)Math.Min(1m, necPilar.PercentOfIncomeBase / 0.50m);
         var desProgress = (double)Math.Min(1m, desPilar.PercentOfIncomeBase / 0.30m);
         var hormigaProgress = desPilar.MetaAmount > 0
@@ -74,11 +74,11 @@ public class KpiService
 
             new("🏦 Ahorro Mensual",
                 ahorroPilar.Spent.ToString("C0"),
-                (snap.IngresoTotal * cfg.MetaAhorroMinimoPct).ToString("C0"),
-                ahorroPilar.Spent >= snap.IngresoTotal * cfg.MetaAhorroMinimoPct ? "✅ Meta alcanzada" : "🟡 En progreso",
+                (snap.IngresoDisponible * cfg.MetaAhorroMinimoPct).ToString("C0"),
+                ahorroPilar.Spent >= snap.IngresoDisponible * cfg.MetaAhorroMinimoPct ? "✅ Meta alcanzada" : "🟡 En progreso",
                 "Suma de ahorro líquido + fondo emergencia + inversión",
-                snap.IngresoTotal * cfg.MetaAhorroMinimoPct > 0
-                    ? (double)Math.Min(1m, ahorroPilar.Spent / (snap.IngresoTotal * cfg.MetaAhorroMinimoPct)) : 0d),
+                snap.IngresoDisponible * cfg.MetaAhorroMinimoPct > 0
+                    ? (double)Math.Min(1m, ahorroPilar.Spent / (snap.IngresoDisponible * cfg.MetaAhorroMinimoPct)) : 0d),
 
             new("🛒 % Gasto en Necesidades",
                 necPilar.PercentOfIncomeBase.ToString("P1"),
