@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SistemaFinanzasPres.Services;
+using SistemaFinanzasPres.Views;
 
 namespace SistemaFinanzasPres.ViewModels;
 
@@ -53,4 +54,8 @@ public partial class KpisViewModel : BaseViewModel
 
     [RelayCommand] private void PrevMonth() => _month.Shift(-1);
     [RelayCommand] private void NextMonth() => _month.Shift(1);
+
+    [RelayCommand]
+    private async Task GoToTrendsAsync()
+        => await Shell.Current.GoToAsync(nameof(TrendsPage));
 }

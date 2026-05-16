@@ -42,6 +42,7 @@ public class AppDbContext : DbContext
         b.Entity<AppConfig>().Property(x => x.MetaAhorroPct).HasConversion<double>();
         b.Entity<AppConfig>().Property(x => x.MetaAhorroMinimoPct).HasConversion<double>();
         b.Entity<AppConfig>().Property(x => x.MetaAhorroOptimoPct).HasConversion<double>();
+        b.Entity<AppConfig>().Property(x => x.DiezmoPct).HasConversion<double>();
 
         b.Entity<SavingsGoal>().Property(x => x.Target).HasConversion<double>();
         b.Entity<SavingsGoal>().Property(x => x.Achieved).HasConversion<double>();

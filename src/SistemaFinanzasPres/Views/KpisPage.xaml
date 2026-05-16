@@ -49,8 +49,7 @@
                 </CollectionView.ItemTemplate>
             </CollectionView>
 
-            <Label Text="🏦 Fondo de Emergencia" Style="{StaticResource H2}" Margin="0,8,0,0" />
-            <Border Style="{StaticResource Card}">
+            <Label Text="🏦 Fondo de Emergencia" Style="{StaticResource H2}" Margin="0,8,0,0" />            <Border Style="{StaticResource Card}">
                 <VerticalStackLayout Spacing="8">
                     <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" RowSpacing="4">
                         <Label Grid.Row="0" Grid.Column="0" Text="Meta del fondo" Style="{StaticResource Muted}" />
@@ -80,6 +79,9 @@
                     </Grid>
                 </VerticalStackLayout>
             </Border>
+            <Button Text="📈 Ver tendencias (6 meses)" Style="{StaticResource ButtonGhost}"
+                    Command="{Binding GoToTrendsCommand}" Margin="0,8,0,0" />
+
         </VerticalStackLayout>
     </ScrollView>
     </RefreshView>

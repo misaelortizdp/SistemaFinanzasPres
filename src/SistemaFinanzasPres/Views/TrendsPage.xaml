@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:SistemaFinanzasPres.ViewModels"
+             x:Class="SistemaFinanzasPres.Views.TrendsPage"
+             x:DataType="vm:TrendsViewModel"
+             Title="Tendencias (6 meses)">
+
+    <RefreshView IsRefreshing="{Binding IsBusy}" Command="{Binding LoadCommand}">
+    <ScrollView>
+        <VerticalStackLayout Padding="14" Spacing="12">
+
+            <!-- Resumen del periodo -->
+            <Label Text="📈 Resumen del periodo" Style="{StaticResource H2}" />
+            <Border Style="{StaticResource Card}">
+                <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="6" ColumnSpacing="12">
+                    <Label Grid.Row="0" Grid.Column="0" Text="Mejor mes (neto)" Style="{StaticResource Muted}" />
+                    <Label Grid.Row="0" Grid.Column="1" Text="Peor mes (neto)" Style="{StaticResource Muted}" />
+                    <Label Grid.Row="1" Grid.Column="0" Text="{Binding MejorMes}" Style="{StaticResource Body}" FontAttributes="Bold" TextColor="#10B981" />
+                    <Label Grid.Row="1" Grid.Column="1" Text="{Binding PeorMes}" Style="{StaticResource Body}" FontAttributes="Bold" TextColor="#EF4444" />
+                    <Label Grid.Row="2" Grid.Column="0" Text="Tasa ahorro prom." Style="{StaticResource Muted}" />
+                    <Label Grid.Row="2" Grid.Column="1" Text="Gasto prom./mes" Style="{StaticResource Muted}" />
+                    <Label Grid.Row="3" Grid.Column="0" Text="{Binding PromedioAhorro}" Style="{StaticResource Body}" FontAttributes="Bold" />
+                    <Label Grid.Row="3" Grid.Column="1" Text="{Binding PromedioGasto}" Style="{StaticResource Body}" FontAttributes="Bold" />
+                </Grid>
+            </Border>
+
+            <!-- Leyenda de barras -->
+            <HorizontalStackLayout Spacing="16" Margin="0,4,0,0">
+                <HorizontalStackLayout Spacing="6">
+                    <BoxView WidthRequest="16" HeightRequest="8" Color="#10B981" CornerRadius="4" VerticalOptions="Center" />
+                    <Label Text="Disponible" Style="{StaticResource Muted}" VerticalTextAlignment="Center" />
+                </HorizontalStackLayout>
+                <HorizontalStackLayout Spacing="6">
+                    <BoxView WidthRequest="16" HeightRequest="8" Color="#EF4444" CornerRadius="4" VerticalOptions="Center" />
+                    <Label Text="Gastado" Style="{StaticResource Muted}" VerticalTextAlignment="Center" />
+                </HorizontalStackLayout>
+            </HorizontalStackLayout>
+
+            <!-- Meses -->
+            <CollectionView ItemsSource="{Binding Months}" SelectionMode="None">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="vm:TrendMonth">
+                        <Border Style="{StaticResource Card}" Margin="0,4">
+                            <VerticalStackLayout Spacing="6">
+
+                                <!-- Cabecera -->
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <Label Grid.Column="0" Text="{Binding Label}" Style="{StaticResource H2}" />
+                                    <Border Grid.Column="1"
+                                            BackgroundColor="#0F766E"
+                                            StrokeThickness="0"
+                                            IsVisible="{Binding IsCurrentMonth}"
+                                            Padding="6,2">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="8" />
+                                        </Border.StrokeShape>
+                                        <Label Text="Mes actual" TextColor="White" FontSize="11" />
+                                    </Border>
+                                </Grid>
+
+                                <!-- Barras comparativas -->
+                                <ProgressBar Progress="{Binding IngresoBar}" ProgressColor="#10B981" HeightRequest="10" />
+                                <ProgressBar Progress="{Binding GastoBar}" ProgressColor="#EF4444" HeightRequest="10" />
+
+                                <!-- Números -->
+                                <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto" RowSpacing="2" ColumnSpacing="8" Margin="0,4,0,0">
+                                    <Label Grid.Row="0" Grid.Column="0" Text="Disponible" Style="{StaticResource Muted}" FontSize="11" />
+                                    <Label Grid.Row="0" Grid.Column="1" Text="Gastado" Style="{StaticResource Muted}" FontSize="11" />
+                                    <Label Grid.Row="0" Grid.Column="2" Text="Neto" Style="{StaticResource Muted}" FontSize="11" />
+                                    <Label Grid.Row="1" Grid.Column="0" Text="{Binding IngresoDisponible, StringFormat='{0:C0}'}"
+                                           Style="{StaticResource Body}" FontAttributes="Bold" TextColor="#10B981" />
+                                    <Label Grid.Row="1" Grid.Column="1" Text="{Binding TotalGastado, StringFormat='{0:C0}'}"
+                                           Style="{StaticResource Body}" FontAttributes="Bold" TextColor="#EF4444" />
+                                    <Label Grid.Row="1" Grid.Column="2" Text="{Binding Neto, StringFormat='{0:C0}'}"
+                                           Style="{StaticResource Body}" FontAttributes="Bold"
+                                           TextColor="{Binding TendIngresoColor}" />
+                                </Grid>
+
+                                <BoxView HeightRequest="1" Color="#E5E7EB" Margin="0,2" />
+
+                                <!-- Ahorro y tendencias -->
+                                <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" RowSpacing="2" ColumnSpacing="8">
+                                    <Label Grid.Row="0" Grid.Column="0" Text="Tasa ahorro" Style="{StaticResource Muted}" FontSize="11" />
+                                    <Label Grid.Row="0" Grid.Column="1" Text="vs mes anterior" Style="{StaticResource Muted}" FontSize="11" />
+                                    <Label Grid.Row="1" Grid.Column="0"
+                                           Text="{Binding TasaAhorro, StringFormat='{0:P1}'}"
+                                           Style="{StaticResource Body}" FontAttributes="Bold" />
+                                    <VerticalStackLayout Grid.Row="1" Grid.Column="1" Spacing="2">
+                                        <Label Text="{Binding TendIngreso}" FontSize="11" FontAttributes="Bold"
+                                               TextColor="{Binding TendIngresoColor}" />
+                                        <Label Text="{Binding TendGasto}" FontSize="11" FontAttributes="Bold"
+                                               TextColor="{Binding TendGastoColor}" />
+                                    </VerticalStackLayout>
+                                </Grid>
+
+                            </VerticalStackLayout>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+        </VerticalStackLayout>
+    </ScrollView>
+    </RefreshView>
+</ContentPage>
