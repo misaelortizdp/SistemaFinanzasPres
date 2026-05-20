@@ -13,7 +13,7 @@ Este repo contiene tres proyectos:
 ### 1. Backend (puerto 5050)
 
 ```bash
-cd api
+cd src/SistemaFinanzasPres.Api
 dotnet restore
 dotnet run
 ```
