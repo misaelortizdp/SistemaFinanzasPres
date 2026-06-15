@@ -19,6 +19,15 @@ public class BaseDatosContexto : IdentityDbContext<Usuario>
     public DbSet<SnapshotPatrimonial> SnapshotsPatrimoniales => Set<SnapshotPatrimonial>();
     public DbSet<ConfigUsuario> ConfigUsuarios => Set<ConfigUsuario>();
 
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        base.ConfigureConventions(configurationBuilder);
+        // SQLite no ordena decimal nativamente; convertimos a double para que
+        // los ORDER BY funcionen. Postgres soporta decimal pero la conversión
+        // también funciona ahí — precisión suficiente para finanzas personales.
+        configurationBuilder.Properties<decimal>().HaveConversion<double>();
+    }
+
     protected override void OnModelCreating(ModelBuilder b)
     {
         base.OnModelCreating(b);
