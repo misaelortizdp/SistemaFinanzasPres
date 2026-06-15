@@ -48,7 +48,7 @@ public class AutenticacionController : ControllerBase
         if (!resultado.Succeeded)
             return BadRequest(new { errores = resultado.Errors.Select(e => e.Description) });
 
-        await SembrarCategoriasIniciales(usuario.Id);
+        await SembrarDatosIniciales(usuario.Id);
 
         var (token, expira) = _servicioJwt.GenerarToken(usuario);
         return Ok(new RespuestaAutenticacionDto
@@ -101,7 +101,7 @@ public class AutenticacionController : ControllerBase
         });
     }
 
-    private async Task SembrarCategoriasIniciales(string usuarioId)
+    private async Task SembrarDatosIniciales(string usuarioId)
     {
         Categoria N(string nombre, TipoCategoria tipo, string color, string icono, int orden) =>
             new() { UsuarioId = usuarioId, Nombre = nombre, Tipo = tipo, Color = color, Icono = icono, Orden = orden };
@@ -118,6 +118,14 @@ public class AutenticacionController : ControllerBase
             N("Ahorro",      TipoCategoria.Ahorro,     "#10B981", "🐖", 9),
             N("Inversión",   TipoCategoria.Ahorro,     "#0F766E", "📈", 10)
         );
+
+        _bd.Cuentas.AddRange(
+            new Cuenta { UsuarioId = usuarioId, Nombre = "Efectivo",         Saldo = 0, Orden = 1, Activa = true },
+            new Cuenta { UsuarioId = usuarioId, Nombre = "Cuenta bancaria",  Saldo = 0, Orden = 2, Activa = true }
+        );
+
+        _bd.ConfigUsuarios.Add(new ConfigUsuario { UsuarioId = usuarioId });
+
         await _bd.SaveChangesAsync();
     }
 }
