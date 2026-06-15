@@ -66,8 +66,12 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 
 // ── CORS ─────────────────────────────────────────────────────────
-var origenesPermitidos = builder.Configuration
-    .GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+// Acepta tanto array en appsettings ("Cors:AllowedOrigins") como string
+// separado por comas en env var ("Cors__AllowedOriginsCsv=https://a,https://b").
+var csv = builder.Configuration["Cors:AllowedOriginsCsv"];
+var origenesPermitidos = !string.IsNullOrWhiteSpace(csv)
+    ? csv.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()).ToArray()
+    : builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
 
 builder.Services.AddCors(opciones =>
 {

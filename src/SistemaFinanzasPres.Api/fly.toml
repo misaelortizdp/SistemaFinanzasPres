@@ -1,0 +1,22 @@
+# Configuración de Fly.io
+# Cámbiale el nombre al "app" antes de hacer fly launch (debe ser único en Fly)
+
+app = "sistemafinanzaspres-api"
+primary_region = "iad"  # us-east. Otras: "lax" (LA), "scl" (Santiago), "gru" (São Paulo)
+
+[build]
+
+[env]
+  ASPNETCORE_ENVIRONMENT = "Production"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
