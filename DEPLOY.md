@@ -74,11 +74,11 @@ Reemplaza `<...>` con los valores reales:
 ```powershell
 flyctl secrets set `
   Database__Provider="Postgres" `
-  Database__ConnectionString="Host=ep-small-morning-ajw5kf1q.c-3.us-east-2.aws.neon.tech;Database=neondb;Username=neondb_owner;Password=npg_jpDh21GcdQEe;SSL Mode=Require;Trust Server Certificate=true" `
-  Jwt__Key="tsBwWIpsew0NIgjw5wvd5hyN95OyUSHb24icrUTRoR/tspuRE6pi33xAikGVPsko" `
+  Database__ConnectionString="Host=ep-xxx.us-east-2.aws.neon.tech;Database=neondb;Username=...;Password=...;SSL Mode=Require;Trust Server Certificate=true" `
+  Jwt__Key="<la_clave_que_generaste>" `
   Jwt__Issuer="SistemaFinanzasPres" `
   Jwt__Audience="SistemaFinanzasPresClients" `
-  Cors__AllowedOriginsCsv="*temporal*"
+  Cors__AllowedOriginsCsv="https://tu-app.vercel.app"
 ```
 
 (De momento puedes poner `Cors__AllowedOriginsCsv="*temporal*"` y lo actualizas después del Paso 3.)
@@ -117,7 +117,7 @@ Ya que tienes la URL real de Vercel, actualiza el secret:
 
 ```powershell
 cd src\SistemaFinanzasPres.Api
-flyctl secrets set Cors__AllowedOriginsCsv="https://sistema-finanzas-pres.vercel.app/"
+flyctl secrets set Cors__AllowedOriginsCsv="https://sistemafinanzaspres-xyz.vercel.app"
 ```
 
 La API se reinicia sola en ~30s.
