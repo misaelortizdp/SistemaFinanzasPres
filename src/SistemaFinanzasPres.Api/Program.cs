@@ -1,3 +1,7 @@
+// Permite que DateTime con Kind=Unspecified llegue desde JSON sin error en Npgsql.
+// Necesario porque System.Text.Json deserializa fechas como Unspecified por defecto.
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
