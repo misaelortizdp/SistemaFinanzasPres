@@ -23,7 +23,8 @@ public class PanelController : ControllerBase
         var mesActual = hoy.Month;
 
         // Último mes incluido en tendencia = mes actual; primero = hace 5 meses
-        var fechaInicio = new DateTime(hoy.AddMonths(-5).Year, hoy.AddMonths(-5).Month, 1);
+        var hace5 = hoy.AddMonths(-5);
+        var fechaInicio = new DateTime(hace5.Year, hace5.Month, 1, 0, 0, 0, DateTimeKind.Utc);
 
         // ── Tendencia: últimos 6 meses ───────────────────────────────
         var gastosMes = await _bd.Movimientos

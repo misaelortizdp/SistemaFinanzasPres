@@ -123,6 +123,13 @@ using (var scope = app.Services.CreateScope())
     bd.Database.EnsureCreated();
 }
 
+app.UseExceptionHandler(err => err.Run(async ctx =>
+{
+    ctx.Response.StatusCode = 500;
+    ctx.Response.ContentType = "application/json";
+    await ctx.Response.WriteAsync("{\"error\":\"Error interno del servidor.\"}");
+}));
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
