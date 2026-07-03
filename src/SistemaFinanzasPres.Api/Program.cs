@@ -123,13 +123,6 @@ using (var scope = app.Services.CreateScope())
     bd.Database.EnsureCreated();
 }
 
-app.UseExceptionHandler(err => err.Run(async ctx =>
-{
-    ctx.Response.StatusCode = 500;
-    ctx.Response.ContentType = "application/json";
-    await ctx.Response.WriteAsync("{\"error\":\"Error interno del servidor.\"}");
-}));
-
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -137,6 +130,22 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors();
+
+// El handler de excepciones va DESPUÉS de UseCors() y re-aplica los headers
+// manualmente porque UseExceptionHandler limpia la respuesta antes de escribir.
+app.UseExceptionHandler(err => err.Run(async ctx =>
+{
+    var origin = ctx.Request.Headers["Origin"].FirstOrDefault();
+    if (!string.IsNullOrEmpty(origin))
+    {
+        ctx.Response.Headers["Access-Control-Allow-Origin"] = origin;
+        ctx.Response.Headers["Vary"] = "Origin";
+        ctx.Response.Headers["Access-Control-Allow-Credentials"] = "true";
+    }
+    ctx.Response.StatusCode = 500;
+    ctx.Response.ContentType = "application/json";
+    await ctx.Response.WriteAsync("{\"error\":\"Error interno del servidor.\"}");
+}));
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
