@@ -8,18 +8,14 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type TipoCategoria = 1 | 2 | 3 | 4;
-const ETIQUETAS_TIPO: Record<TipoCategoria, string> = {
-  1: "Necesidad",
-  2: "Deseo",
-  3: "Ahorro",
-  4: "Ingreso",
-};
-const COLORES_TIPO: Record<TipoCategoria, string> = {
-  1: "bg-red-100 text-red-800",
-  2: "bg-purple-100 text-purple-800",
-  3: "bg-emerald-100 text-emerald-800",
-  4: "bg-blue-100 text-blue-800",
-};
+
+const PILARES: { tipo: TipoCategoria; label: string; icono: string; color: string; borde: string }[] = [
+  { tipo: 1, label: "Necesidades", icono: "🏠", color: "text-red-700 dark:text-red-400",   borde: "border-red-200 dark:border-red-800" },
+  { tipo: 2, label: "Deseos",      icono: "🎮", color: "text-purple-700 dark:text-purple-400", borde: "border-purple-200 dark:border-purple-800" },
+  { tipo: 3, label: "Ahorro",      icono: "💰", color: "text-emerald-700 dark:text-emerald-400", borde: "border-emerald-200 dark:border-emerald-800" },
+  { tipo: 4, label: "Ingresos",    icono: "💼", color: "text-blue-700 dark:text-blue-400",  borde: "border-blue-200 dark:border-blue-800" },
+];
+
 
 interface Categoria {
   id: number;
@@ -137,48 +133,56 @@ export default function PaginaCategorias() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Tus categorías ({categorias.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <p className="text-muted-foreground">Cargando…</p>
-          ) : categorias.length === 0 ? (
-            <p className="text-muted-foreground">Aún no tienes categorías.</p>
-          ) : (
-            <ul className="divide-y">
-              {categorias.map((c) => (
-                <li key={c.id} className="flex items-center justify-between py-3">
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl w-8 text-center">{c.icono ?? "•"}</span>
-                    <div>
-                      <p className="font-medium">{c.nombre}</p>
-                      <span className={`inline-block text-xs px-2 py-0.5 rounded-full mt-0.5 ${COLORES_TIPO[c.tipo]}`}>
-                        {ETIQUETAS_TIPO[c.tipo]}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex gap-1">
-                    <Button size="icon" variant="ghost" onClick={() => cargarParaEditar(c)}>
-                      <Pencil className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => {
-                        if (confirm(`¿Eliminar "${c.nombre}"?`)) eliminar.mutate(c.id);
-                      }}
-                    >
-                      <Trash2 className="w-4 h-4 text-destructive" />
-                    </Button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
+      {isLoading ? (
+        <p className="text-muted-foreground">Cargando…</p>
+      ) : categorias.length === 0 ? (
+        <p className="text-muted-foreground">Aún no tienes categorías.</p>
+      ) : (
+        <div className="space-y-4">
+          {PILARES.map((pilar) => {
+            const grupo = categorias.filter((c) => c.tipo === pilar.tipo);
+            if (grupo.length === 0) return null;
+            return (
+              <Card key={pilar.tipo} className={`border ${pilar.borde}`}>
+                <CardHeader className="pb-2 pt-4 px-4">
+                  <CardTitle className={`text-sm font-semibold flex items-center gap-2 ${pilar.color}`}>
+                    <span className="text-base">{pilar.icono}</span>
+                    {pilar.label}
+                    <span className="ml-auto font-normal text-muted-foreground">{grupo.length}</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-4 pb-3">
+                  <ul className="divide-y">
+                    {grupo.map((c) => (
+                      <li key={c.id} className="flex items-center justify-between py-2.5">
+                        <div className="flex items-center gap-3">
+                          <span className="text-xl w-7 text-center">{c.icono ?? "•"}</span>
+                          <p className="font-medium text-sm">{c.nombre}</p>
+                        </div>
+                        <div className="flex gap-1">
+                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => cargarParaEditar(c)}>
+                            <Pencil className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8"
+                            onClick={() => {
+                              if (confirm(`¿Eliminar "${c.nombre}"?`)) eliminar.mutate(c.id);
+                            }}
+                          >
+                            <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                          </Button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
