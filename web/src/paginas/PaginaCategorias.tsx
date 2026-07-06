@@ -1,6 +1,6 @@
 import { FormEvent, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Trash2, Pencil, Plus } from "lucide-react";
+import { Trash2, Pencil, Plus, EyeOff, Eye } from "lucide-react";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +15,6 @@ const PILARES: { tipo: TipoCategoria; label: string; icono: string; color: strin
   { tipo: 3, label: "Ahorro",      icono: "💰", color: "text-emerald-700 dark:text-emerald-400", borde: "border-emerald-200 dark:border-emerald-800" },
   { tipo: 4, label: "Ingresos",    icono: "💼", color: "text-blue-700 dark:text-blue-400",  borde: "border-blue-200 dark:border-blue-800" },
 ];
-
 
 interface Categoria {
   id: number;
@@ -69,11 +68,20 @@ export default function PaginaCategorias() {
     },
   });
 
+  const toggleActiva = useMutation({
+    mutationFn: async (id: number) => api.patch(`/api/categorias/${id}/toggle-activa`),
+    onSuccess: () => cliente.invalidateQueries({ queryKey: ["categorias"] }),
+  });
+
   const eliminar = useMutation({
     mutationFn: async (id: number) => {
       await api.delete(`/api/categorias/${id}`);
     },
     onSuccess: () => cliente.invalidateQueries({ queryKey: ["categorias"] }),
+    onError: (err: any) => {
+      const msg = err?.response?.data?.error ?? "No se pudo eliminar la categoría.";
+      alert(msg);
+    },
   });
 
   function manejarEnvio(e: FormEvent) {
@@ -154,12 +162,24 @@ export default function PaginaCategorias() {
                 <CardContent className="px-4 pb-3">
                   <ul className="divide-y">
                     {grupo.map((c) => (
-                      <li key={c.id} className="flex items-center justify-between py-2.5">
+                      <li key={c.id} className={`flex items-center justify-between py-2.5 ${!c.activa ? "opacity-50" : ""}`}>
                         <div className="flex items-center gap-3">
                           <span className="text-xl w-7 text-center">{c.icono ?? "•"}</span>
-                          <p className="font-medium text-sm">{c.nombre}</p>
+                          <div>
+                            <p className="font-medium text-sm">{c.nombre}</p>
+                            {!c.activa && <p className="text-xs text-muted-foreground">Inactiva</p>}
+                          </div>
                         </div>
                         <div className="flex gap-1">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8"
+                            title={c.activa ? "Desactivar" : "Activar"}
+                            onClick={() => toggleActiva.mutate(c.id)}
+                          >
+                            {c.activa ? <EyeOff className="w-3.5 h-3.5 text-muted-foreground" /> : <Eye className="w-3.5 h-3.5 text-emerald-600" />}
+                          </Button>
                           <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => cargarParaEditar(c)}>
                             <Pencil className="w-3.5 h-3.5" />
                           </Button>
@@ -168,7 +188,7 @@ export default function PaginaCategorias() {
                             variant="ghost"
                             className="h-8 w-8"
                             onClick={() => {
-                              if (confirm(`¿Eliminar "${c.nombre}"?`)) eliminar.mutate(c.id);
+                              if (confirm(`¿Eliminar "${c.nombre}"? Si tiene movimientos, solo podrás desactivarla.`)) eliminar.mutate(c.id);
                             }}
                           >
                             <Trash2 className="w-3.5 h-3.5 text-destructive" />

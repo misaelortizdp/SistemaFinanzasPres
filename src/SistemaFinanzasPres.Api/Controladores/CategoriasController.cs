@@ -90,12 +90,28 @@ public class CategoriasController : ControllerBase
         return NoContent();
     }
 
+    [HttpPatch("{id:int}/toggle-activa")]
+    public async Task<IActionResult> ToggleActiva(int id)
+    {
+        var usuarioId = User.ObtenerId();
+        var c = await _bd.Categorias.FirstOrDefaultAsync(x => x.Id == id && x.UsuarioId == usuarioId);
+        if (c == null) return NotFound();
+        c.Activa = !c.Activa;
+        await _bd.SaveChangesAsync();
+        return Ok(new { activa = c.Activa });
+    }
+
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Eliminar(int id)
     {
         var usuarioId = User.ObtenerId();
         var c = await _bd.Categorias.FirstOrDefaultAsync(x => x.Id == id && x.UsuarioId == usuarioId);
         if (c == null) return NotFound();
+
+        var tieneMovimientos = await _bd.Movimientos.AnyAsync(m => m.CategoriaId == id);
+        if (tieneMovimientos)
+            return Conflict(new { error = "No se puede eliminar: la categoría tiene movimientos registrados. Puedes desactivarla en su lugar." });
+
         _bd.Categorias.Remove(c);
         await _bd.SaveChangesAsync();
         return NoContent();

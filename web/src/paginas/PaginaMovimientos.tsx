@@ -1,6 +1,6 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Pencil, Trash2, Plus, ChevronLeft, ChevronRight } from "lucide-react";
+import { Pencil, Trash2, Plus, ChevronLeft, ChevronRight, Search, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { formatoFecha, formatoMoneda, mesActual, NOMBRES_MES, useCategorias, useCuentas } from "@/lib/hooks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,6 +22,8 @@ export default function PaginaMovimientos() {
   const ahora = mesActual();
   const [anio, setAnio] = useState(ahora.anio);
   const [mes, setMes] = useState(ahora.mes);
+  const [filtroTexto, setFiltroTexto] = useState("");
+  const [filtroCategoria, setFiltroCategoria] = useState<number | "">("");
 
   const { data: categorias = [] } = useCategorias();
   const { data: cuentas = [] } = useCuentas();
@@ -89,7 +91,25 @@ export default function PaginaMovimientos() {
     setMes(m); setAnio(a);
   }
 
-  const total = movimientos.reduce((s, m) => s + m.monto, 0);
+  const movimientosFiltrados = useMemo(() => {
+    let lista = movimientos;
+    if (filtroTexto.trim()) {
+      const q = filtroTexto.toLowerCase();
+      lista = lista.filter(m =>
+        m.concepto.toLowerCase().includes(q) ||
+        (m.nombreCategoria ?? "").toLowerCase().includes(q) ||
+        (m.notas ?? "").toLowerCase().includes(q)
+      );
+    }
+    if (filtroCategoria !== "") {
+      lista = lista.filter(m => m.categoriaId === filtroCategoria);
+    }
+    return lista;
+  }, [movimientos, filtroTexto, filtroCategoria]);
+
+  const total = movimientosFiltrados.reduce((s, m) => s + m.monto, 0);
+  const totalSinFiltro = movimientos.reduce((s, m) => s + m.monto, 0);
+  const hayFiltro = filtroTexto.trim() !== "" || filtroCategoria !== "";
   const categoriasNoIngreso = categorias.filter(c => c.tipo !== 4);
 
   return (
@@ -153,31 +173,65 @@ export default function PaginaMovimientos() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Movimientos del mes ({movimientos.length}) · Total: <span className="text-red-600">{formatoMoneda(total)}</span></CardTitle>
+          <CardTitle>
+            Movimientos del mes ({hayFiltro ? `${movimientosFiltrados.length} de ${movimientos.length}` : movimientos.length})
+            {" · "}Total: <span className="text-red-600">{formatoMoneda(total)}</span>
+            {hayFiltro && <span className="text-xs text-muted-foreground ml-2">(total mes: {formatoMoneda(totalSinFiltro)})</span>}
+          </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-3">
+          {/* Buscador */}
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-2.5 top-2.5 w-4 h-4 text-muted-foreground" />
+              <Input
+                className="pl-8"
+                placeholder="Buscar por concepto, categoría o notas…"
+                value={filtroTexto}
+                onChange={(e) => setFiltroTexto(e.target.value)}
+              />
+            </div>
+            <Select
+              className="w-44"
+              value={filtroCategoria}
+              onChange={(e) => setFiltroCategoria(e.target.value === "" ? "" : Number(e.target.value))}
+            >
+              <option value="">Todas las categorías</option>
+              {categoriasNoIngreso.map(c => <option key={c.id} value={c.id}>{c.icono} {c.nombre}</option>)}
+            </Select>
+            {hayFiltro && (
+              <Button variant="ghost" size="icon" onClick={() => { setFiltroTexto(""); setFiltroCategoria(""); }}>
+                <X className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
+
           {isLoading ? <p className="text-muted-foreground">Cargando…</p> :
-           movimientos.length === 0 ? <p className="text-muted-foreground">Sin movimientos este mes.</p> :
-           <ul className="divide-y">
-             {movimientos.map(m => (
-               <li key={m.id} className="py-3 flex items-start justify-between gap-3">
-                 <div className="min-w-0 flex-1">
-                   <p className="font-medium truncate">{m.concepto}</p>
-                   <p className="text-xs text-muted-foreground">
-                     {formatoFecha(m.fecha)} · {m.nombreCategoria}
-                     {m.nombreCuenta ? ` · ${m.nombreCuenta}` : ""}
-                   </p>
-                 </div>
-                 <div className="flex items-center gap-1">
-                   <span className="font-semibold text-red-600">{formatoMoneda(m.monto)}</span>
-                   <Button size="icon" variant="ghost" onClick={() => editar(m)}><Pencil className="w-4 h-4" /></Button>
-                   <Button size="icon" variant="ghost" onClick={() => { if (confirm("¿Eliminar movimiento?")) eliminar.mutate(m.id); }}>
-                     <Trash2 className="w-4 h-4 text-destructive" />
-                   </Button>
-                 </div>
-               </li>
-             ))}
-           </ul>}
+           movimientosFiltrados.length === 0 ? (
+             <p className="text-muted-foreground">{hayFiltro ? "Sin resultados para ese filtro." : "Sin movimientos este mes."}</p>
+           ) : (
+             <ul className="divide-y">
+               {movimientosFiltrados.map(m => (
+                 <li key={m.id} className="py-3 flex items-start justify-between gap-3">
+                   <div className="min-w-0 flex-1">
+                     <p className="font-medium truncate">{m.concepto}</p>
+                     <p className="text-xs text-muted-foreground">
+                       {formatoFecha(m.fecha)} · {m.nombreCategoria}
+                       {m.nombreCuenta ? ` · ${m.nombreCuenta}` : ""}
+                       {m.notas ? ` · ${m.notas}` : ""}
+                     </p>
+                   </div>
+                   <div className="flex items-center gap-1">
+                     <span className="font-semibold text-red-600">{formatoMoneda(m.monto)}</span>
+                     <Button size="icon" variant="ghost" onClick={() => editar(m)}><Pencil className="w-4 h-4" /></Button>
+                     <Button size="icon" variant="ghost" onClick={() => { if (confirm("¿Eliminar movimiento?")) eliminar.mutate(m.id); }}>
+                       <Trash2 className="w-4 h-4 text-destructive" />
+                     </Button>
+                   </div>
+                 </li>
+               ))}
+             </ul>
+           )}
         </CardContent>
       </Card>
     </div>

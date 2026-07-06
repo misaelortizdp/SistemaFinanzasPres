@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import {
-  TrendingUp, TrendingDown, Wallet, Gem, ArrowRight,
+  TrendingUp, TrendingDown, Wallet, Gem, ArrowRight, Flame, CalendarClock,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -12,16 +12,17 @@ import { usarAutenticacion } from "@/autenticacion/ContextoAutenticacion";
 import { formatoMoneda, mesActual, NOMBRES_MES } from "@/lib/hooks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-// ── Tipos ────────────────────────────────────────────────────────────
 interface Movimiento { id: number; fecha: string; concepto: string; monto: number; nombreCategoria?: string }
 interface PatrimonioActual { totalActivos: number; totalPasivos: number; patrimonioNeto: number }
 interface TendenciaMes { anio: number; mes: number; ingresos: number; gastos: number }
 interface GastoCategoria { nombre: string; monto: number; color?: string; icono?: string }
-interface Distribucion { necesidades: number; deseos: number; ahorro: number; totalIngresos: number }
+interface Distribucion { necesidades: number; deseos: number; ahorro: number; totalIngresos: number; ingresoDisponible: number; diezmoMonto: number }
+interface Proyeccion { diasTranscurridos: number; diasTotales: number; gastoActual: number; gastoProyectado: number; tasaQuemaDiaria: number; presupuestoDiarioPermitido: number; ingresoDisponible: number }
 interface ResumenPanel {
   tendencia: TendenciaMes[]
   gastosPorCategoria: GastoCategoria[]
   distribucion: Distribucion
+  proyeccion: Proyeccion
 }
 interface Config {
   metaNecesidadesPct: number
@@ -29,10 +30,8 @@ interface Config {
   metaAhorroPct: number
 }
 
-// ── Paleta de colores para categorías sin color propio ───────────────
 const PALETA = ["#6366f1","#f43f5e","#f59e0b","#10b981","#3b82f6","#8b5cf6","#ec4899","#14b8a6","#f97316","#84cc16"];
 
-// ── Formateador compacto para ejes Y ────────────────────────────────
 function compacto(v: number) {
   if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
   if (v >= 1_000) return `${(v / 1_000).toFixed(0)}k`;
@@ -63,32 +62,28 @@ export default function PaginaPanel() {
     queryFn: async () => (await api.get("/api/configuracion")).data,
   });
 
-  // KPI del mes actual derivados de tendencia
   const mesActualTendencia = resumen?.tendencia.find(t => t.anio === anio && t.mes === mes);
   const totalIngresos = mesActualTendencia?.ingresos ?? 0;
   const totalGastos = mesActualTendencia?.gastos ?? 0;
   const balance = totalIngresos - totalGastos;
 
-  // Datos para el gráfico de barras
   const datosBarras = resumen?.tendencia.map(t => ({
     nombre: NOMBRES_MES[t.mes - 1].slice(0, 3),
     Ingresos: t.ingresos,
     Gastos: t.gastos,
   })) ?? [];
 
-  // Datos para la dona
   const datosDona = (resumen?.gastosPorCategoria ?? []).map((g, i) => ({
     name: `${g.icono ?? ""} ${g.nombre}`.trim(),
     value: g.monto,
     color: g.color ?? PALETA[i % PALETA.length],
   }));
 
-  // Distribución 50/30/20
   const dist = resumen?.distribucion;
+  const proy = resumen?.proyeccion;
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
-      {/* Encabezado */}
       <header>
         <h1 className="text-3xl font-bold">Hola, {usuario?.nombre} 👋</h1>
         <p className="text-muted-foreground">{NOMBRES_MES[mes - 1]} {anio}</p>
@@ -112,9 +107,52 @@ export default function PaginaPanel() {
         />
       </div>
 
+      {/* Proyección + diezmo */}
+      {proy && proy.ingresoDisponible > 0 && (
+        <div className="grid sm:grid-cols-2 gap-3">
+          <Card>
+            <CardContent className="pt-5 space-y-2">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <Flame className="w-4 h-4 text-orange-500" />
+                Ritmo de gasto
+              </div>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                <span className="text-muted-foreground">Gasto actual</span>
+                <span className="font-semibold text-right">{formatoMoneda(proy.gastoActual)}</span>
+                <span className="text-muted-foreground">Proyectado al mes</span>
+                <span className={`font-semibold text-right ${proy.gastoProyectado > proy.ingresoDisponible ? "text-red-600" : "text-foreground"}`}>
+                  {formatoMoneda(proy.gastoProyectado)}
+                </span>
+                <span className="text-muted-foreground">Quema diaria</span>
+                <span className="font-semibold text-right">{formatoMoneda(proy.tasaQuemaDiaria)}/día</span>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-5 space-y-2">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <CalendarClock className="w-4 h-4 text-blue-500" />
+                Presupuesto diario
+              </div>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                <span className="text-muted-foreground">Ingreso disponible</span>
+                <span className="font-semibold text-right">{formatoMoneda(proy.ingresoDisponible)}</span>
+                <span className="text-muted-foreground">Permitido por día</span>
+                <span className="font-semibold text-right text-emerald-600">{formatoMoneda(proy.presupuestoDiarioPermitido)}/día</span>
+                <span className="text-muted-foreground">Día {proy.diasTranscurridos} de {proy.diasTotales}</span>
+                <div className="flex items-center justify-end">
+                  <div className="h-1.5 w-20 bg-muted rounded-full overflow-hidden">
+                    <div className="h-full bg-blue-400 rounded-full" style={{ width: `${Math.round((proy.diasTranscurridos / proy.diasTotales) * 100)}%` }} />
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* Gráficas principales */}
       <div className="grid md:grid-cols-2 gap-4">
-        {/* Barras: Ingresos vs Gastos últimos 6 meses */}
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Ingresos vs Gastos — últimos 6 meses</CardTitle>
@@ -141,7 +179,6 @@ export default function PaginaPanel() {
           </CardContent>
         </Card>
 
-        {/* Dona: Gastos por categoría este mes */}
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Gastos por categoría — {NOMBRES_MES[mes - 1]}</CardTitle>
@@ -182,7 +219,22 @@ export default function PaginaPanel() {
         </Card>
       </div>
 
-      {/* Regla 50/30/20 con porcentajes de la configuración del usuario */}
+      {/* Diezmo banner */}
+      {dist && dist.diezmoMonto > 0 && (
+        <Card className="border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/20">
+          <CardContent className="pt-4 pb-3 flex items-center justify-between flex-wrap gap-2">
+            <p className="text-sm">
+              🙏 <span className="font-medium">Diezmo del mes:</span>{" "}
+              <span className="font-bold text-amber-700 dark:text-amber-400">{formatoMoneda(dist.diezmoMonto)}</span>
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Ingreso disponible tras diezmo: <span className="font-semibold text-foreground">{formatoMoneda(dist.ingresoDisponible)}</span>
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Regla 50/30/20 */}
       {dist && dist.totalIngresos > 0 && (
         <Card>
           <CardHeader className="pb-2">
@@ -197,11 +249,11 @@ export default function PaginaPanel() {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-xs text-muted-foreground -mt-1">
-              Ingresos del mes: <span className="font-semibold text-foreground">{formatoMoneda(dist.totalIngresos)}</span>
+              Ingreso disponible: <span className="font-semibold text-foreground">{formatoMoneda(dist.ingresoDisponible > 0 ? dist.ingresoDisponible : dist.totalIngresos)}</span>
             </p>
-            <Barra50 etiqueta="Necesidades" icono="🏠" actual={dist.necesidades} objetivo={dist.totalIngresos * (config?.metaNecesidadesPct ?? 0.5)} pct={Math.round((config?.metaNecesidadesPct ?? 0.5) * 100)} />
-            <Barra50 etiqueta="Deseos"      icono="🎮" actual={dist.deseos}      objetivo={dist.totalIngresos * (config?.metaDeseosPct ?? 0.3)}      pct={Math.round((config?.metaDeseosPct ?? 0.3) * 100)} />
-            <Barra50 etiqueta="Ahorro"      icono="💰" actual={dist.ahorro}      objetivo={dist.totalIngresos * (config?.metaAhorroPct ?? 0.2)}      pct={Math.round((config?.metaAhorroPct ?? 0.2) * 100)} />
+            <Barra50 etiqueta="Necesidades" icono="🏠" actual={dist.necesidades} objetivo={(dist.ingresoDisponible > 0 ? dist.ingresoDisponible : dist.totalIngresos) * (config?.metaNecesidadesPct ?? 0.5)} pct={Math.round((config?.metaNecesidadesPct ?? 0.5) * 100)} />
+            <Barra50 etiqueta="Deseos"      icono="🎮" actual={dist.deseos}      objetivo={(dist.ingresoDisponible > 0 ? dist.ingresoDisponible : dist.totalIngresos) * (config?.metaDeseosPct ?? 0.3)}      pct={Math.round((config?.metaDeseosPct ?? 0.3) * 100)} />
+            <Barra50 etiqueta="Ahorro"      icono="💰" actual={dist.ahorro}      objetivo={(dist.ingresoDisponible > 0 ? dist.ingresoDisponible : dist.totalIngresos) * (config?.metaAhorroPct ?? 0.2)}      pct={Math.round((config?.metaAhorroPct ?? 0.2) * 100)} />
           </CardContent>
         </Card>
       )}
@@ -237,8 +289,6 @@ export default function PaginaPanel() {
     </div>
   );
 }
-
-// ── Componentes auxiliares ───────────────────────────────────────────
 
 function TarjetaKpi({ icono, etiqueta, valor, colorValor }: { icono: React.ReactNode; etiqueta: string; valor: string; colorValor?: string }) {
   return (

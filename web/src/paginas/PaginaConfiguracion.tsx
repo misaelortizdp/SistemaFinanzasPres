@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { formatoMoneda } from "@/lib/hooks";
 
 interface Config {
   diezmoPct: number;
@@ -32,6 +33,7 @@ export default function PaginaConfiguracion() {
   });
 
   const [cfg, setCfg] = useState<Config>(VACIO);
+  const [ingresoBase, setIngresoBase] = useState("15000");
   useEffect(() => { if (data) setCfg(data); }, [data]);
 
   const guardar = useMutation({
@@ -49,6 +51,14 @@ export default function PaginaConfiguracion() {
 
   function pct(v: number) { return (v * 100).toFixed(0); }
   function pctNum(v: string) { return Math.max(0, parseFloat(v) || 0) / 100; }
+
+  // Calculadora de diezmo en vivo
+  const ingreso = parseFloat(ingresoBase) || 0;
+  const diezmoCalc = ingreso * cfg.diezmoPct;
+  const disponibleCalc = ingreso - diezmoCalc;
+  const necCalc = disponibleCalc * cfg.metaNecesidadesPct;
+  const desCalc = disponibleCalc * cfg.metaDeseosPct;
+  const ahorCalc = disponibleCalc * cfg.metaAhorroPct;
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -111,6 +121,43 @@ export default function PaginaConfiguracion() {
           <Save className="w-4 h-4 mr-2" />Guardar configuración
         </Button>
       </form>
+
+      {/* Calculadora de diezmo */}
+      <Card>
+        <CardHeader><CardTitle>🧮 Calculadora en vivo</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-1.5">
+            <Label>Ingreso de ejemplo</Label>
+            <Input type="number" value={ingresoBase} onChange={(e) => setIngresoBase(e.target.value)} />
+          </div>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between py-1.5 border-b">
+              <span className="text-muted-foreground">Ingreso bruto</span>
+              <span className="font-semibold">{formatoMoneda(ingreso)}</span>
+            </div>
+            <div className="flex justify-between py-1.5 border-b text-amber-700 dark:text-amber-400">
+              <span>🙏 Diezmo ({pct(cfg.diezmoPct)}%)</span>
+              <span className="font-semibold">- {formatoMoneda(diezmoCalc)}</span>
+            </div>
+            <div className="flex justify-between py-1.5 border-b font-medium">
+              <span>Ingreso disponible</span>
+              <span>{formatoMoneda(disponibleCalc)}</span>
+            </div>
+            <div className="flex justify-between py-1 text-red-600 dark:text-red-400">
+              <span>🏠 Necesidades ({pct(cfg.metaNecesidadesPct)}%)</span>
+              <span>{formatoMoneda(necCalc)}</span>
+            </div>
+            <div className="flex justify-between py-1 text-purple-600 dark:text-purple-400">
+              <span>🎮 Deseos ({pct(cfg.metaDeseosPct)}%)</span>
+              <span>{formatoMoneda(desCalc)}</span>
+            </div>
+            <div className="flex justify-between py-1 text-emerald-600 dark:text-emerald-400">
+              <span>💰 Ahorro ({pct(cfg.metaAhorroPct)}%)</span>
+              <span>{formatoMoneda(ahorCalc)}</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

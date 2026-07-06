@@ -19,6 +19,37 @@ interface Meta {
 
 const PRIORIDADES = ["URGENTE", "ALTA", "MEDIA", "BAJA", "FUTURO"];
 
+function estadoMeta(m: Meta): { texto: string; color: string } {
+  if (m.acumulado >= m.objetivo && m.objetivo > 0) return { texto: "✅ Alcanzada", color: "text-emerald-600" };
+  if (m.fechaLimite) {
+    const hoy = new Date();
+    const limite = new Date(m.fechaLimite);
+    const mesesRestantes = Math.max(0, (limite.getFullYear() - hoy.getFullYear()) * 12 + (limite.getMonth() - hoy.getMonth()));
+    const necesario = (m.objetivo - m.acumulado) / Math.max(1, mesesRestantes);
+    if (mesesRestantes === 0) return { texto: "⚠ Vence este mes", color: "text-red-600" };
+    if (m.aporteMensualPlaneado > 0 && m.aporteMensualPlaneado >= necesario)
+      return { texto: "✓ En camino", color: "text-emerald-600" };
+    return { texto: "↑ Aporte insuficiente", color: "text-amber-600" };
+  }
+  return { texto: "En curso", color: "text-muted-foreground" };
+}
+
+function mesesParaLograrlo(m: Meta): number | null {
+  const restante = m.objetivo - m.acumulado;
+  if (restante <= 0) return 0;
+  if (m.aporteMensualPlaneado <= 0) return null;
+  return Math.ceil(restante / m.aporteMensualPlaneado);
+}
+
+function aporteRecomendado(m: Meta): number | null {
+  if (!m.fechaLimite) return null;
+  const hoy = new Date();
+  const limite = new Date(m.fechaLimite);
+  const meses = Math.max(1, (limite.getFullYear() - hoy.getFullYear()) * 12 + (limite.getMonth() - hoy.getMonth()));
+  const restante = Math.max(0, m.objetivo - m.acumulado);
+  return Math.ceil(restante / meses);
+}
+
 export default function PaginaMetas() {
   const cliente = useQueryClient();
   const { data: metas = [], isLoading } = useQuery({
@@ -82,18 +113,27 @@ export default function PaginaMetas() {
   }
 
   function aporteRapido(m: Meta) {
-    const v = prompt(`Aporte para "${m.nombre}". Restante: ${formatoMoneda(m.objetivo - m.acumulado)}`, "0");
+    const sugerido = aporteRecomendado(m) ?? m.aporteMensualPlaneado;
+    const v = prompt(`Aporte para "${m.nombre}". Restante: ${formatoMoneda(m.objetivo - m.acumulado)}`, String(sugerido || "0"));
     if (!v) return;
     const monto = parseFloat(v);
     if (!monto || monto <= 0) return alert("Monto inválido");
     aportar.mutate({ id: m.id, monto });
   }
 
+  const totalAhorrado = metas.filter(m => m.activa).reduce((s, m) => s + m.acumulado, 0);
+  const totalObjetivo = metas.filter(m => m.activa).reduce((s, m) => s + m.objetivo, 0);
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <header>
         <h1 className="text-3xl font-bold">🎯 Metas de ahorro</h1>
-        <p className="text-muted-foreground">Define tus objetivos y mide tu progreso.</p>
+        {metas.length > 0 && (
+          <p className="text-muted-foreground">
+            Ahorrado: <span className="font-semibold text-emerald-600">{formatoMoneda(totalAhorrado)}</span> de{" "}
+            <span className="font-semibold">{formatoMoneda(totalObjetivo)}</span>
+          </p>
+        )}
       </header>
 
       <Card>
@@ -139,6 +179,10 @@ export default function PaginaMetas() {
                const restante = Math.max(0, m.objetivo - m.acumulado);
                const pct = m.objetivo > 0 ? Math.min(100, (m.acumulado / m.objetivo) * 100) : 0;
                const lograda = m.acumulado >= m.objetivo && m.objetivo > 0;
+               const estado = estadoMeta(m);
+               const mesesRestantes = mesesParaLograrlo(m);
+               const recomendado = aporteRecomendado(m);
+
                return (
                  <li key={m.id} className="border rounded-lg p-3">
                    <div className="flex items-start justify-between gap-2 mb-2">
@@ -146,12 +190,20 @@ export default function PaginaMetas() {
                        <p className="font-semibold">
                          {m.nombre}
                          <span className="ml-2 text-xs bg-muted px-1.5 py-0.5 rounded">{m.prioridad}</span>
-                         {lograda && <span className="ml-2 text-xs bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded">✅ Alcanzada</span>}
+                         <span className={`ml-2 text-xs font-medium ${estado.color}`}>{estado.texto}</span>
                        </p>
                        <p className="text-xs text-muted-foreground">
                          {formatoMoneda(m.acumulado)} / {formatoMoneda(m.objetivo)} · Restante: {formatoMoneda(restante)}
                          {m.fechaLimite && ` · Hasta: ${formatoFecha(m.fechaLimite)}`}
                        </p>
+                       <div className="flex gap-3 mt-0.5 text-xs text-muted-foreground">
+                         {!lograda && mesesRestantes !== null && (
+                           <span>⏱ {mesesRestantes} meses con aporte actual</span>
+                         )}
+                         {!lograda && recomendado !== null && (
+                           <span>💡 Recomendado: {formatoMoneda(recomendado)}/mes</span>
+                         )}
+                       </div>
                      </div>
                      <div className="flex gap-1">
                        <Button size="sm" variant="outline" onClick={() => aporteRapido(m)} disabled={lograda}>
@@ -166,6 +218,7 @@ export default function PaginaMetas() {
                    <div className="h-2 bg-muted rounded-full overflow-hidden">
                      <div className={`h-full ${lograda ? "bg-emerald-500" : "bg-blue-500"}`} style={{ width: `${pct}%` }} />
                    </div>
+                   <p className="text-xs text-muted-foreground mt-1">{Math.round(pct)}% completado</p>
                  </li>
                );
              })}
