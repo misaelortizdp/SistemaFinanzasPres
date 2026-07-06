@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import {
   TrendingUp, TrendingDown, Wallet, Gem, ArrowRight, Flame, CalendarClock,
+  PiggyBank, Shield, CreditCard,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -24,6 +25,11 @@ interface ResumenPanel {
   distribucion: Distribucion
   proyeccion: Proyeccion
 }
+interface Kpis {
+  tasaAhorroPct: number; ahorroMensual: number;
+  fondoEmergenciaActual: number; fondoEmergenciaMeta: number; fondoEmergenciaMeses: number;
+  totalDeudas: number; deudasActivas: number;
+}
 interface Config {
   metaNecesidadesPct: number
   metaDeseosPct: number
@@ -45,6 +51,11 @@ export default function PaginaPanel() {
   const { data: resumen } = useQuery<ResumenPanel>({
     queryKey: ["panel-resumen"],
     queryFn: async () => (await api.get("/api/panel/resumen")).data,
+  });
+
+  const { data: kpis } = useQuery<Kpis>({
+    queryKey: ["panel-kpis"],
+    queryFn: async () => (await api.get("/api/panel/kpis")).data,
   });
 
   const { data: patrimonio } = useQuery<PatrimonioActual>({
@@ -81,6 +92,10 @@ export default function PaginaPanel() {
 
   const dist = resumen?.distribucion;
   const proy = resumen?.proyeccion;
+  const metaAhor = Math.round((config?.metaAhorroPct ?? 0.2) * 100);
+  const fondoPct = kpis && kpis.fondoEmergenciaMeta > 0
+    ? Math.min(100, (kpis.fondoEmergenciaActual / kpis.fondoEmergenciaMeta) * 100)
+    : 0;
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -89,7 +104,7 @@ export default function PaginaPanel() {
         <p className="text-muted-foreground">{NOMBRES_MES[mes - 1]} {anio}</p>
       </header>
 
-      {/* KPI cards */}
+      {/* Fila 1: KPI cards principales */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <TarjetaKpi icono={<TrendingUp className="w-5 h-5 text-emerald-600" />} etiqueta="Ingresos" valor={formatoMoneda(totalIngresos)} colorValor="text-emerald-600" />
         <TarjetaKpi icono={<TrendingDown className="w-5 h-5 text-red-600" />} etiqueta="Gastos" valor={formatoMoneda(totalGastos)} colorValor="text-red-600" />
@@ -107,7 +122,55 @@ export default function PaginaPanel() {
         />
       </div>
 
-      {/* Proyección + diezmo */}
+      {/* Fila 2: tasa de ahorro, fondo de emergencia, deudas */}
+      {kpis && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {/* Tasa de ahorro */}
+          <Card>
+            <CardContent className="pt-4 pb-3">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                <PiggyBank className="w-4 h-4" /> Tasa de ahorro
+              </div>
+              <p className={`text-2xl font-bold ${kpis.tasaAhorroPct >= metaAhor ? "text-emerald-600" : kpis.tasaAhorroPct >= 0 ? "text-amber-600" : "text-red-600"}`}>
+                {kpis.tasaAhorroPct.toFixed(1)}%
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">meta: {metaAhor}% · {formatoMoneda(kpis.ahorroMensual)}/mes</p>
+            </CardContent>
+          </Card>
+
+          {/* Fondo de emergencia */}
+          <Card>
+            <CardContent className="pt-4 pb-3">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                <Shield className="w-4 h-4" /> Fondo de emergencia
+              </div>
+              <p className="text-xl font-bold">{fondoPct.toFixed(0)}%</p>
+              <div className="h-1.5 bg-muted rounded-full overflow-hidden mt-1.5 mb-1">
+                <div
+                  className={`h-full rounded-full ${fondoPct >= 100 ? "bg-emerald-500" : fondoPct >= 50 ? "bg-amber-500" : "bg-red-500"}`}
+                  style={{ width: `${fondoPct}%` }}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">{formatoMoneda(kpis.fondoEmergenciaActual)} / {formatoMoneda(kpis.fondoEmergenciaMeta)} ({kpis.fondoEmergenciaMeses} meses)</p>
+            </CardContent>
+          </Card>
+
+          {/* Deudas */}
+          <Card>
+            <CardContent className="pt-4 pb-3">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                <CreditCard className="w-4 h-4" /> Deuda total activa
+              </div>
+              <p className={`text-2xl font-bold ${kpis.totalDeudas > 0 ? "text-red-600" : "text-emerald-600"}`}>
+                {formatoMoneda(kpis.totalDeudas)}
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">{kpis.deudasActivas} deudas activas</p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Proyección de gasto */}
       {proy && proy.ingresoDisponible > 0 && (
         <div className="grid sm:grid-cols-2 gap-3">
           <Card>
@@ -166,10 +229,7 @@ export default function PaginaPanel() {
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis dataKey="nombre" tick={{ fontSize: 12 }} />
                   <YAxis tickFormatter={compacto} tick={{ fontSize: 12 }} width={45} />
-                  <Tooltip
-                    formatter={(v) => formatoMoneda(Number(v ?? 0))}
-                    contentStyle={{ fontSize: 12, borderRadius: 8 }}
-                  />
+                  <Tooltip formatter={(v) => formatoMoneda(Number(v ?? 0))} contentStyle={{ fontSize: 12, borderRadius: 8 }} />
                   <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
                   <Bar dataKey="Ingresos" fill="#10b981" radius={[4, 4, 0, 0]} />
                   <Bar dataKey="Gastos" fill="#f43f5e" radius={[4, 4, 0, 0]} />
@@ -189,29 +249,11 @@ export default function PaginaPanel() {
             ) : (
               <ResponsiveContainer width="100%" height={220}>
                 <PieChart>
-                  <Pie
-                    data={datosDona}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={55}
-                    outerRadius={85}
-                    paddingAngle={2}
-                    dataKey="value"
-                  >
-                    {datosDona.map((entry, i) => (
-                      <Cell key={i} fill={entry.color} />
-                    ))}
+                  <Pie data={datosDona} cx="50%" cy="50%" innerRadius={55} outerRadius={85} paddingAngle={2} dataKey="value">
+                    {datosDona.map((entry, i) => <Cell key={i} fill={entry.color} />)}
                   </Pie>
-                  <Tooltip
-                    formatter={(v) => formatoMoneda(Number(v ?? 0))}
-                    contentStyle={{ fontSize: 12, borderRadius: 8 }}
-                  />
-                  <Legend
-                    iconType="circle"
-                    iconSize={8}
-                    wrapperStyle={{ fontSize: 11 }}
-                    formatter={(value) => value.length > 18 ? value.slice(0, 18) + "…" : value}
-                  />
+                  <Tooltip formatter={(v) => formatoMoneda(Number(v ?? 0))} contentStyle={{ fontSize: 12, borderRadius: 8 }} />
+                  <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }} formatter={(value) => value.length > 18 ? value.slice(0, 18) + "…" : value} />
                 </PieChart>
               </ResponsiveContainer>
             )}
@@ -234,7 +276,7 @@ export default function PaginaPanel() {
         </Card>
       )}
 
-      {/* Regla 50/30/20 */}
+      {/* Distribución 50/30/20 */}
       {dist && dist.totalIngresos > 0 && (
         <Card>
           <CardHeader className="pb-2">
@@ -251,14 +293,19 @@ export default function PaginaPanel() {
             <p className="text-xs text-muted-foreground -mt-1">
               Ingreso disponible: <span className="font-semibold text-foreground">{formatoMoneda(dist.ingresoDisponible > 0 ? dist.ingresoDisponible : dist.totalIngresos)}</span>
             </p>
-            <Barra50 etiqueta="Necesidades" icono="🏠" actual={dist.necesidades} objetivo={(dist.ingresoDisponible > 0 ? dist.ingresoDisponible : dist.totalIngresos) * (config?.metaNecesidadesPct ?? 0.5)} pct={Math.round((config?.metaNecesidadesPct ?? 0.5) * 100)} />
-            <Barra50 etiqueta="Deseos"      icono="🎮" actual={dist.deseos}      objetivo={(dist.ingresoDisponible > 0 ? dist.ingresoDisponible : dist.totalIngresos) * (config?.metaDeseosPct ?? 0.3)}      pct={Math.round((config?.metaDeseosPct ?? 0.3) * 100)} />
-            <Barra50 etiqueta="Ahorro"      icono="💰" actual={dist.ahorro}      objetivo={(dist.ingresoDisponible > 0 ? dist.ingresoDisponible : dist.totalIngresos) * (config?.metaAhorroPct ?? 0.2)}      pct={Math.round((config?.metaAhorroPct ?? 0.2) * 100)} />
+            {(() => {
+              const base = dist.ingresoDisponible > 0 ? dist.ingresoDisponible : dist.totalIngresos;
+              return <>
+                <Barra50 etiqueta="Necesidades" icono="🏠" actual={dist.necesidades} objetivo={base * (config?.metaNecesidadesPct ?? 0.5)} pct={Math.round((config?.metaNecesidadesPct ?? 0.5) * 100)} />
+                <Barra50 etiqueta="Deseos"      icono="🎮" actual={dist.deseos}      objetivo={base * (config?.metaDeseosPct ?? 0.3)}      pct={Math.round((config?.metaDeseosPct ?? 0.3) * 100)} />
+                <Barra50 etiqueta="Ahorro"      icono="💰" actual={dist.ahorro}      objetivo={base * (config?.metaAhorroPct ?? 0.2)}      pct={Math.round((config?.metaAhorroPct ?? 0.2) * 100)} />
+              </>;
+            })()}
           </CardContent>
         </Card>
       )}
 
-      {/* Movimientos recientes */}
+      {/* Últimos movimientos */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-base">Últimos movimientos</CardTitle>
@@ -305,7 +352,6 @@ function Barra50({ etiqueta, icono, actual, objetivo, pct }: { etiqueta: string;
   const porcentaje = objetivo > 0 ? Math.min(100, (actual / objetivo) * 100) : 0;
   const excedido = actual > objetivo;
   const cerca = !excedido && porcentaje >= 80;
-
   return (
     <div className="space-y-1">
       <div className="flex justify-between text-sm">
@@ -315,15 +361,10 @@ function Barra50({ etiqueta, icono, actual, objetivo, pct }: { etiqueta: string;
         </span>
       </div>
       <div className="h-2 bg-muted rounded-full overflow-hidden">
-        <div
-          className={`h-full transition-all rounded-full ${excedido ? "bg-red-500" : cerca ? "bg-amber-500" : "bg-emerald-500"}`}
-          style={{ width: `${porcentaje}%` }}
-        />
+        <div className={`h-full transition-all rounded-full ${excedido ? "bg-red-500" : cerca ? "bg-amber-500" : "bg-emerald-500"}`} style={{ width: `${porcentaje}%` }} />
       </div>
       <p className="text-xs text-muted-foreground">
-        {excedido
-          ? `Excediste el límite por ${formatoMoneda(actual - objetivo)}`
-          : `Disponible: ${formatoMoneda(objetivo - actual)}`}
+        {excedido ? `Excediste el límite por ${formatoMoneda(actual - objetivo)}` : `Disponible: ${formatoMoneda(objetivo - actual)}`}
       </p>
     </div>
   );

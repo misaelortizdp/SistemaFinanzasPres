@@ -13,7 +13,6 @@ import PaginaDeudas from "@/paginas/PaginaDeudas";
 import PaginaMetas from "@/paginas/PaginaMetas";
 import PaginaPatrimonio from "@/paginas/PaginaPatrimonio";
 import PaginaConfiguracion from "@/paginas/PaginaConfiguracion";
-import PaginaKpis from "@/paginas/PaginaKpis";
 import PaginaTendencias from "@/paginas/PaginaTendencias";
 
 function Protegida({ children }: { children: React.ReactNode }) {
@@ -40,7 +39,6 @@ export default function App() {
       <Route path="/patrimonio"    element={<Protegida><PaginaPatrimonio /></Protegida>} />
       <Route path="/categorias"    element={<Protegida><PaginaCategorias /></Protegida>} />
       <Route path="/configuracion" element={<Protegida><PaginaConfiguracion /></Protegida>} />
-      <Route path="/kpis"          element={<Protegida><PaginaKpis /></Protegida>} />
       <Route path="/tendencias"    element={<Protegida><PaginaTendencias /></Protegida>} />
 
       <Route path="*" element={<Navigate to="/" replace />} />
