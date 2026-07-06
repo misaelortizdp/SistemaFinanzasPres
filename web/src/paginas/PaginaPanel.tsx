@@ -23,6 +23,11 @@ interface ResumenPanel {
   gastosPorCategoria: GastoCategoria[]
   distribucion: Distribucion
 }
+interface Config {
+  metaNecesidadesPct: number
+  metaDeseosPct: number
+  metaAhorroPct: number
+}
 
 // ── Paleta de colores para categorías sin color propio ───────────────
 const PALETA = ["#6366f1","#f43f5e","#f59e0b","#10b981","#3b82f6","#8b5cf6","#ec4899","#14b8a6","#f97316","#84cc16"];
@@ -51,6 +56,11 @@ export default function PaginaPanel() {
   const { data: movimientos = [] } = useQuery<Movimiento[]>({
     queryKey: ["movimientos", anio, mes],
     queryFn: async () => (await api.get(`/api/movimientos?anio=${anio}&mes=${mes}`)).data,
+  });
+
+  const { data: config } = useQuery<Config>({
+    queryKey: ["configuracion"],
+    queryFn: async () => (await api.get("/api/configuracion")).data,
   });
 
   // KPI del mes actual derivados de tendencia
@@ -172,19 +182,26 @@ export default function PaginaPanel() {
         </Card>
       </div>
 
-      {/* Regla 50/30/20 */}
+      {/* Regla 50/30/20 con porcentajes de la configuración del usuario */}
       {dist && dist.totalIngresos > 0 && (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Regla 50 / 30 / 20</CardTitle>
+            <CardTitle className="text-base">
+              Distribución por pilares —&nbsp;
+              <span className="font-normal text-muted-foreground text-sm">
+                {Math.round((config?.metaNecesidadesPct ?? 0.5) * 100)}/
+                {Math.round((config?.metaDeseosPct ?? 0.3) * 100)}/
+                {Math.round((config?.metaAhorroPct ?? 0.2) * 100)}
+              </span>
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-xs text-muted-foreground -mt-1">
               Ingresos del mes: <span className="font-semibold text-foreground">{formatoMoneda(dist.totalIngresos)}</span>
             </p>
-            <Barra50 etiqueta="Necesidades" icono="🏠" actual={dist.necesidades} objetivo={dist.totalIngresos * 0.5} pct={50} />
-            <Barra50 etiqueta="Deseos" icono="🎮" actual={dist.deseos} objetivo={dist.totalIngresos * 0.3} pct={30} />
-            <Barra50 etiqueta="Ahorro" icono="💰" actual={dist.ahorro} objetivo={dist.totalIngresos * 0.2} pct={20} />
+            <Barra50 etiqueta="Necesidades" icono="🏠" actual={dist.necesidades} objetivo={dist.totalIngresos * (config?.metaNecesidadesPct ?? 0.5)} pct={Math.round((config?.metaNecesidadesPct ?? 0.5) * 100)} />
+            <Barra50 etiqueta="Deseos"      icono="🎮" actual={dist.deseos}      objetivo={dist.totalIngresos * (config?.metaDeseosPct ?? 0.3)}      pct={Math.round((config?.metaDeseosPct ?? 0.3) * 100)} />
+            <Barra50 etiqueta="Ahorro"      icono="💰" actual={dist.ahorro}      objetivo={dist.totalIngresos * (config?.metaAhorroPct ?? 0.2)}      pct={Math.round((config?.metaAhorroPct ?? 0.2) * 100)} />
           </CardContent>
         </Card>
       )}

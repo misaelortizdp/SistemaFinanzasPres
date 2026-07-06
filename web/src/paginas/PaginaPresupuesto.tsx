@@ -12,6 +12,12 @@ interface Linea {
   anio: number; mes: number; monto: number; ejecutado: number;
 }
 
+const PILARES = [
+  { tipo: 1 as const, label: "Necesidades", icono: "🏠", color: "text-red-700 dark:text-red-400",     borde: "border-red-200 dark:border-red-800",     barra: "bg-red-500" },
+  { tipo: 2 as const, label: "Deseos",      icono: "🎮", color: "text-purple-700 dark:text-purple-400", borde: "border-purple-200 dark:border-purple-800", barra: "bg-purple-500" },
+  { tipo: 3 as const, label: "Ahorro",      icono: "💰", color: "text-emerald-700 dark:text-emerald-400", borde: "border-emerald-200 dark:border-emerald-800", barra: "bg-emerald-500" },
+];
+
 export default function PaginaPresupuesto() {
   const cliente = useQueryClient();
   const ahora = mesActual();
@@ -45,15 +51,12 @@ export default function PaginaPresupuesto() {
     setMes(m); setAnio(a);
   }
 
+  // Construir filas enriquecidas con tipo de categoría
   const filas = categorias
     .filter(c => c.tipo !== 4 && c.activa)
     .map(c => {
       const linea = lineas.find(l => l.categoriaId === c.id);
-      return {
-        categoria: c, linea,
-        monto: linea?.monto ?? 0,
-        ejecutado: linea?.ejecutado ?? 0,
-      };
+      return { categoria: c, monto: linea?.monto ?? 0, ejecutado: linea?.ejecutado ?? 0 };
     });
 
   const totalPresupuestado = filas.reduce((s, f) => s + f.monto, 0);
@@ -70,10 +73,11 @@ export default function PaginaPresupuesto() {
         </div>
       </header>
 
+      {/* Resumen global */}
       <Card>
         <CardContent className="pt-5 flex items-center justify-between flex-wrap gap-3">
           <div>
-            <p className="text-sm text-muted-foreground">Total presupuestado / ejecutado</p>
+            <p className="text-sm text-muted-foreground">Total ejecutado / presupuestado</p>
             <p className="text-xl font-bold">{formatoMoneda(totalEjecutado)} / {formatoMoneda(totalPresupuestado)}</p>
           </div>
           <Button variant="outline" onClick={() => {
@@ -84,51 +88,85 @@ export default function PaginaPresupuesto() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader><CardTitle>Categorías</CardTitle></CardHeader>
-        <CardContent>
-          {isLoading ? <p className="text-muted-foreground">Cargando…</p> :
-           filas.length === 0 ? <p className="text-muted-foreground">No tienes categorías. Crea algunas en /categorias.</p> :
-           <ul className="divide-y">
-             {filas.map(({ categoria, monto, ejecutado }) => {
-               const pct = monto > 0 ? Math.min(100, (ejecutado / monto) * 100) : 0;
-               const excedido = ejecutado > monto && monto > 0;
-               return (
-                 <li key={categoria.id} className="py-3">
-                   <div className="flex items-center justify-between gap-2 mb-1">
-                     <div className="flex items-center gap-2 min-w-0">
-                       <span className="text-lg">{categoria.icono}</span>
-                       <span className="font-medium truncate">{categoria.nombre}</span>
-                     </div>
-                     <div className="flex items-center gap-2">
-                       <span className={`text-sm font-semibold ${excedido ? "text-red-600" : "text-muted-foreground"}`}>
-                         {formatoMoneda(ejecutado)}
-                       </span>
-                       <span className="text-muted-foreground">/</span>
-                       <Input
-                         type="number"
-                         step="1"
-                         className="w-28 h-8 text-right"
-                         defaultValue={monto}
-                         onBlur={(e) => {
-                           const val = parseFloat(e.target.value) || 0;
-                           if (val !== monto) guardar.mutate({ categoriaId: categoria.id, monto: val });
-                         }}
-                       />
-                     </div>
-                   </div>
-                   <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                     <div
-                       className={`h-full transition-all ${excedido ? "bg-red-500" : pct > 80 ? "bg-amber-500" : "bg-emerald-500"}`}
-                       style={{ width: `${pct}%` }}
-                     />
-                   </div>
-                 </li>
-               );
-             })}
-           </ul>}
-        </CardContent>
-      </Card>
+      {/* Pilares */}
+      {isLoading ? (
+        <p className="text-muted-foreground">Cargando…</p>
+      ) : filas.length === 0 ? (
+        <p className="text-muted-foreground">No tienes categorías. Crea algunas en Categorías.</p>
+      ) : (
+        <div className="space-y-4">
+          {PILARES.map((pilar) => {
+            const grupo = filas.filter(f => f.categoria.tipo === pilar.tipo);
+            if (grupo.length === 0) return null;
+
+            const pilarPresupuestado = grupo.reduce((s, f) => s + f.monto, 0);
+            const pilarEjecutado = grupo.reduce((s, f) => s + f.ejecutado, 0);
+            const pilarPct = pilarPresupuestado > 0 ? Math.min(100, (pilarEjecutado / pilarPresupuestado) * 100) : 0;
+            const pilarExcedido = pilarEjecutado > pilarPresupuestado && pilarPresupuestado > 0;
+
+            return (
+              <Card key={pilar.tipo} className={`border ${pilar.borde}`}>
+                <CardHeader className="pb-2 pt-4 px-4">
+                  <CardTitle className={`text-sm font-semibold flex items-center gap-2 ${pilar.color}`}>
+                    <span className="text-base">{pilar.icono}</span>
+                    {pilar.label}
+                    <span className="ml-auto font-normal text-muted-foreground text-xs">
+                      {formatoMoneda(pilarEjecutado)} / {formatoMoneda(pilarPresupuestado)}
+                    </span>
+                  </CardTitle>
+                  {/* Barra de progreso del pilar */}
+                  <div className="h-1.5 bg-muted rounded-full overflow-hidden mt-1.5">
+                    <div
+                      className={`h-full transition-all rounded-full ${pilarExcedido ? "bg-red-500" : pilarPct > 80 ? "bg-amber-500" : pilar.barra}`}
+                      style={{ width: `${pilarPct}%` }}
+                    />
+                  </div>
+                </CardHeader>
+                <CardContent className="px-4 pb-3">
+                  <ul className="divide-y">
+                    {grupo.map(({ categoria, monto, ejecutado }) => {
+                      const pct = monto > 0 ? Math.min(100, (ejecutado / monto) * 100) : 0;
+                      const excedido = ejecutado > monto && monto > 0;
+                      return (
+                        <li key={categoria.id} className="py-2.5">
+                          <div className="flex items-center justify-between gap-2 mb-1">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="text-base">{categoria.icono}</span>
+                              <span className="font-medium text-sm truncate">{categoria.nombre}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className={`text-sm font-semibold ${excedido ? "text-red-600" : "text-muted-foreground"}`}>
+                                {formatoMoneda(ejecutado)}
+                              </span>
+                              <span className="text-muted-foreground text-xs">/</span>
+                              <Input
+                                type="number"
+                                step="1"
+                                className="w-28 h-8 text-right"
+                                defaultValue={monto}
+                                onBlur={(e) => {
+                                  const val = parseFloat(e.target.value) || 0;
+                                  if (val !== monto) guardar.mutate({ categoriaId: categoria.id, monto: val });
+                                }}
+                              />
+                            </div>
+                          </div>
+                          <div className="h-1 bg-muted rounded-full overflow-hidden">
+                            <div
+                              className={`h-full transition-all ${excedido ? "bg-red-500" : pct > 80 ? "bg-amber-500" : "bg-emerald-500"}`}
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
