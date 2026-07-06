@@ -180,8 +180,8 @@ public class PanelController : ControllerBase
 
         // Cuenta de ahorro como fondo de emergencia (cuentas tipo ahorro / efectivo)
         var fondoActual = await _bd.Cuentas
-            .Where(c => c.UsuarioId == uid)
-            .SumAsync(c => c.SaldoActual);
+            .Where(c => c.UsuarioId == uid && c.Activa)
+            .SumAsync(c => c.Saldo);
 
         // Deudas
         var deudas = await _bd.Deudas
