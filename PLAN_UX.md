@@ -37,24 +37,28 @@ Mejorar la experiencia de usuario de la aplicación web de finanzas personales, 
   - [x] PaginaMetas.tsx
 - [x] Probar y validar funcionamiento (commit realizado)
 
-### 🚧 LOTE 2: Skeleton Screens y Estados de Carga (SIGUIENTE)
+### ✅ LOTE 2: Skeleton Screens y Estados de Carga (COMPLETADO)
 **Prioridad**: CRÍTICA | **Fase**: 1.2
 **Objetivo**: Mejorar percepción de rendimiento con skeleton screens
 
 **Tareas**:
-- [ ] Crear componentes skeleton específicos:
-  - [ ] DashboardSkeleton.tsx
-  - [ ] TableSkeleton.tsx
-  - [ ] CardSkeleton.tsx
-- [ ] Añadir animación shimmer a skeletons
-- [ ] Implementar en páginas principales:
-  - [ ] PaginaPanel (Dashboard)
-  - [ ] PaginaMovimientos (Tabla)
-  - [ ] PaginaPresupuesto (Tarjetas)
-  - [ ] PaginaCategorias
-  - [ ] PaginaCuentas
-- [ ] Implementar actualizaciones optimistas en mutaciones
-- [ ] Renderizado progresivo de datos
+- [x] Componentes skeleton específicos ya existían:
+  - [x] DashboardSkeleton.tsx
+  - [x] TableSkeleton.tsx
+  - [x] CardSkeleton.tsx
+- [x] Añadir animación shimmer a skeletons
+- [x] Implementar en páginas principales:
+  - [x] PaginaPanel (Dashboard) - ya estaba implementado
+  - [x] PaginaMovimientos (Tabla)
+  - [x] PaginaPresupuesto (Tarjetas)
+  - [x] PaginaCategorias
+  - [x] PaginaCuentas
+- [x] Implementar actualizaciones optimistas en mutaciones:
+  - [x] PaginaCuentas (guardar, eliminar)
+  - [x] PaginaCategorias (guardar, eliminar, toggleActiva)
+  - [x] PaginaMovimientos (eliminar)
+  - [x] PaginaPresupuesto (guardar)
+- [x] Renderizado progresivo de datos (ya implementado con React Query)
 
 ### ⏳ LOTE 3: Mejoras Responsive Mobile-First
 **Prioridad**: CRÍTICA | **Fase**: 1.1
@@ -271,10 +275,17 @@ Mejorar la experiencia de usuario de la aplicación web de finanzas personales, 
   - Reemplazados todos los confirm() por useConfirm
   - 6 archivos modificados (PaginaConfiguracion, PaginaDeudas, PaginaMetas, PaginaIngresos, PaginaCuentas, PaginaPatrimonio)
   - Commit: feat: reemplazar alert() y confirm() nativos por toast y diálogos personalizados
+- ✅ **LOTE 2 COMPLETADO**: Skeleton Screens y Estados de Carga
+  - Añadida animación shimmer a componentes skeleton
+  - Implementado skeleton screens en 5 páginas principales
+  - Actualizaciones optimistas en mutaciones de 4 páginas
+  - 2 commits realizados
+  - Commit 1: feat: añadir animación shimmer y skeleton screens en páginas principales
+  - Commit 2: feat: implementar actualizaciones optimistas en mutaciones principales
 
 ---
 
 **Última actualización**: 2026-07-21  
-**Lote completado**: LOTE 1 ✅  
-**Lote actual**: LOTE 2 (Skeleton Screens)  
-**Progreso general**: 1/10 lotes (10%)
+**Lote completado**: LOTE 2 ✅  
+**Lote actual**: LOTE 3 (Mejoras Responsive Mobile-First)  
+**Progreso general**: 2/10 lotes (20%)
