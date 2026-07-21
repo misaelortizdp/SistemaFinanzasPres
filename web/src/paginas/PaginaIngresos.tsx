@@ -1,5 +1,5 @@
 import { FormEvent, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tantml:parameter>
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pencil, Trash2, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { api } from "@/lib/api";
 import { formatoFecha, formatoMoneda, mesActual, NOMBRES_MES, useCuentas } from "@/lib/hooks";
