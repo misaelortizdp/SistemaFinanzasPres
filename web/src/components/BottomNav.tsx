@@ -15,7 +15,7 @@ const ITEMS = [
 export function BottomNav() {
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-background border-t z-50 safe-bottom">
-      <div className="flex items-center justify-around h-16">
+      <div className="flex items-center justify-around h-16 px-2">
         {ITEMS.map((item) => (
           <NavLink
             key={item.ruta}
@@ -23,10 +23,11 @@ export function BottomNav() {
             end={item.ruta === "/"}
             className={({ isActive }) =>
               cn(
-                "flex flex-col items-center justify-center gap-1 px-3 py-2 flex-1 transition-colors min-w-0",
+                "flex flex-col items-center justify-center gap-1 px-3 py-2 flex-1 transition-all min-w-0 rounded-lg",
+                "min-h-[44px] active:scale-95",
                 isActive
-                  ? "text-primary"
-                  : "text-muted-foreground"
+                  ? "text-primary bg-primary/10"
+                  : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
               )
             }
           >

@@ -158,10 +158,10 @@ export default function PaginaCategorias() {
         </CardHeader>
         <CardContent>
           <form onSubmit={manejarEnvio} className="space-y-3">
-            <div className="grid sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="nombre">Nombre</Label>
-                <Input id="nombre" required value={nombre} onChange={(e) => setNombre(e.target.value)} />
+                <Input id="nombre" required value={nombre} onChange={(e) => setNombre(e.target.value)} className="h-11" />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="tipo">Tipo</Label>
@@ -169,7 +169,7 @@ export default function PaginaCategorias() {
                   id="tipo"
                   value={tipo}
                   onChange={(e) => setTipo(Number(e.target.value) as TipoCategoria)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 >
                   <option value={1}>Necesidad</option>
                   <option value={2}>Deseo</option>
@@ -180,15 +180,15 @@ export default function PaginaCategorias() {
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="icono">Icono / Emoji</Label>
-              <Input id="icono" maxLength={4} placeholder="🏠" value={icono} onChange={(e) => setIcono(e.target.value)} />
+              <Input id="icono" maxLength={4} placeholder="🏠" value={icono} onChange={(e) => setIcono(e.target.value)} className="h-11" />
             </div>
             <div className="flex gap-2">
-              <Button type="submit" disabled={guardar.isPending}>
+              <Button type="submit" disabled={guardar.isPending} className="h-11 px-6">
                 <Plus className="w-4 h-4 mr-2" />
                 {editando ? "Guardar cambios" : "Agregar"}
               </Button>
               {editando && (
-                <Button type="button" variant="outline" onClick={limpiarFormulario}>
+                <Button type="button" variant="outline" onClick={limpiarFormulario} className="h-11 px-6">
                   Cancelar
                 </Button>
               )}
@@ -257,23 +257,23 @@ export default function PaginaCategorias() {
                             {!c.activa && <p className="text-xs text-muted-foreground">Inactiva</p>}
                           </div>
                         </div>
-                        <div className="flex gap-1">
+                        <div className="flex gap-1 shrink-0">
                           <Button
                             size="icon"
                             variant="ghost"
-                            className="h-8 w-8"
+                            className="h-11 w-11"
                             title={c.activa ? "Desactivar" : "Activar"}
                             onClick={() => toggleActiva.mutate(c.id)}
                           >
-                            {c.activa ? <EyeOff className="w-3.5 h-3.5 text-muted-foreground" /> : <Eye className="w-3.5 h-3.5 text-emerald-600" />}
+                            {c.activa ? <EyeOff className="w-4 h-4 text-muted-foreground" /> : <Eye className="w-4 h-4 text-emerald-600" />}
                           </Button>
-                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => cargarParaEditar(c)}>
-                            <Pencil className="w-3.5 h-3.5" />
+                          <Button size="icon" variant="ghost" className="h-11 w-11" onClick={() => cargarParaEditar(c)}>
+                            <Pencil className="w-4 h-4" />
                           </Button>
                           <Button
                             size="icon"
                             variant="ghost"
-                            className="h-8 w-8"
+                            className="h-11 w-11"
                             onClick={async () => {
                               const confirmado = await confirm({
                                 title: "Eliminar categoría",
@@ -285,7 +285,7 @@ export default function PaginaCategorias() {
                               if (confirmado) eliminar.mutate(c.id);
                             }}
                           >
-                            <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                            <Trash2 className="w-4 h-4 text-destructive" />
                           </Button>
                         </div>
                       </li>

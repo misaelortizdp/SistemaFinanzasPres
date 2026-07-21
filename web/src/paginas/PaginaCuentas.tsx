@@ -90,21 +90,21 @@ export default function PaginaCuentas() {
         <CardHeader><CardTitle>{editando ? `Editar: ${editando.nombre}` : "Nueva cuenta"}</CardTitle></CardHeader>
         <CardContent>
           <form onSubmit={enviar} className="space-y-3">
-            <div className="grid sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="n">Nombre</Label>
-                <Input id="n" required value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Cuenta bancaria, Efectivo, ..." />
+                <Input id="n" required value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Cuenta bancaria, Efectivo, ..." className="h-11" />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="s">Saldo</Label>
-                <Input id="s" type="number" step="0.01" value={saldo} onChange={(e) => setSaldo(e.target.value)} />
+                <Input id="s" type="number" step="0.01" value={saldo} onChange={(e) => setSaldo(e.target.value)} className="h-11" />
               </div>
             </div>
             <div className="flex gap-2">
-              <Button type="submit" disabled={guardar.isPending}>
+              <Button type="submit" disabled={guardar.isPending} className="h-11 px-6">
                 <Plus className="w-4 h-4 mr-2" />{editando ? "Guardar" : "Agregar"}
               </Button>
-              {editando && <Button type="button" variant="outline" onClick={limpiar}>Cancelar</Button>}
+              {editando && <Button type="button" variant="outline" onClick={limpiar} className="h-11 px-6">Cancelar</Button>}
             </div>
           </form>
         </CardContent>
@@ -138,8 +138,8 @@ export default function PaginaCuentas() {
                      {formatoMoneda(c.saldo)}
                    </p>
                  </div>
-                 <div className="flex gap-1">
-                   <Button size="icon" variant="ghost" onClick={() => editar(c)}><Pencil className="w-4 h-4" /></Button>
+                <div className="flex gap-1 shrink-0">
+                  <Button size="icon" variant="ghost" onClick={() => editar(c)} className="h-11 w-11"><Pencil className="w-4 h-4" /></Button>
                    <Button size="icon" variant="ghost" onClick={async () => {
                      const confirmado = await confirm({
                        title: "¿Eliminar cuenta?",
@@ -149,7 +149,7 @@ export default function PaginaCuentas() {
                        variant: "destructive"
                      });
                      if (confirmado) eliminar.mutate(c.id);
-                   }}>
+                  }} className="h-11 w-11">
                      <Trash2 className="w-4 h-4 text-destructive" />
                    </Button>
                  </div>

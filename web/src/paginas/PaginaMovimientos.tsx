@@ -143,9 +143,9 @@ export default function PaginaMovimientos() {
         <header className="flex items-center justify-between flex-wrap gap-3">
           <h1 className="text-3xl font-bold">🛒 Movimientos</h1>
           <div className="flex items-center gap-2">
-            <Button size="icon" variant="outline" onClick={() => cambiarMes(-1)}><ChevronLeft className="w-4 h-4" /></Button>
+            <Button size="icon" variant="outline" onClick={() => cambiarMes(-1)} className="h-11 w-11"><ChevronLeft className="w-4 h-4" /></Button>
             <span className="text-sm font-medium min-w-[140px] text-center">{NOMBRES_MES[mes - 1]} {anio}</span>
-            <Button size="icon" variant="outline" onClick={() => cambiarMes(1)}><ChevronRight className="w-4 h-4" /></Button>
+            <Button size="icon" variant="outline" onClick={() => cambiarMes(1)} className="h-11 w-11"><ChevronRight className="w-4 h-4" /></Button>
           </div>
         </header>
 
@@ -153,31 +153,31 @@ export default function PaginaMovimientos() {
         <CardHeader><CardTitle>{editando ? "Editar movimiento" : "Nuevo movimiento"}</CardTitle></CardHeader>
         <CardContent>
           <form onSubmit={enviar} className="space-y-3">
-            <div className="grid sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="space-y-1.5">
                 <Label>Fecha</Label>
-                <Input type="date" required value={fecha} onChange={(e) => setFecha(e.target.value)} />
+                <Input type="date" required value={fecha} onChange={(e) => setFecha(e.target.value)} className="h-11" />
               </div>
               <div className="space-y-1.5">
                 <Label>Monto</Label>
-                <Input type="number" step="0.01" required value={monto} onChange={(e) => setMonto(e.target.value)} />
+                <Input type="number" step="0.01" required value={monto} onChange={(e) => setMonto(e.target.value)} className="h-11" />
               </div>
               <div className="space-y-1.5">
                 <Label>Categoría</Label>
-                <Select required value={categoriaId} onChange={(e) => setCategoriaId(Number(e.target.value))}>
+                <Select required value={categoriaId} onChange={(e) => setCategoriaId(Number(e.target.value))} className="h-11">
                   <option value="">— Selecciona —</option>
                   {categoriasNoIngreso.map(c => <option key={c.id} value={c.id}>{c.icono} {c.nombre}</option>)}
                 </Select>
               </div>
             </div>
-            <div className="grid sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Concepto</Label>
-                <Input required value={concepto} onChange={(e) => setConcepto(e.target.value)} placeholder="Comida en restaurante, etc." />
+                <Input required value={concepto} onChange={(e) => setConcepto(e.target.value)} placeholder="Comida en restaurante, etc." className="h-11" />
               </div>
               <div className="space-y-1.5">
                 <Label>Cuenta (opcional)</Label>
-                <Select value={cuentaId} onChange={(e) => setCuentaId(e.target.value === "" ? "" : Number(e.target.value))}>
+                <Select value={cuentaId} onChange={(e) => setCuentaId(e.target.value === "" ? "" : Number(e.target.value))} className="h-11">
                   <option value="">— Sin cuenta —</option>
                   {cuentas.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
                 </Select>
@@ -185,13 +185,13 @@ export default function PaginaMovimientos() {
             </div>
             <div className="space-y-1.5">
               <Label>Notas (opcional)</Label>
-              <Textarea value={notas} onChange={(e) => setNotas(e.target.value)} />
+              <Textarea value={notas} onChange={(e) => setNotas(e.target.value)} className="min-h-[44px]" />
             </div>
             <div className="flex gap-2">
-              <Button type="submit" disabled={guardar.isPending}>
+              <Button type="submit" disabled={guardar.isPending} className="h-11 px-6">
                 <Plus className="w-4 h-4 mr-2" />{editando ? "Guardar" : "Agregar"}
               </Button>
-              {editando && <Button type="button" variant="outline" onClick={limpiar}>Cancelar</Button>}
+              {editando && <Button type="button" variant="outline" onClick={limpiar} className="h-11 px-6">Cancelar</Button>}
             </div>
           </form>
         </CardContent>
@@ -207,18 +207,18 @@ export default function PaginaMovimientos() {
         </CardHeader>
         <CardContent className="space-y-3">
           {/* Buscador */}
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-2.5 top-2.5 w-4 h-4 text-muted-foreground" />
+          <div className="flex gap-2 flex-wrap">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-2.5 top-3 w-4 h-4 text-muted-foreground" />
               <Input
-                className="pl-8"
+                className="pl-8 h-11"
                 placeholder="Buscar por concepto, categoría o notas…"
                 value={filtroTexto}
                 onChange={(e) => setFiltroTexto(e.target.value)}
               />
             </div>
             <Select
-              className="w-44"
+              className="w-full sm:w-48 h-11"
               value={filtroCategoria}
               onChange={(e) => setFiltroCategoria(e.target.value === "" ? "" : Number(e.target.value))}
             >
@@ -226,7 +226,7 @@ export default function PaginaMovimientos() {
               {categoriasNoIngreso.map(c => <option key={c.id} value={c.id}>{c.icono} {c.nombre}</option>)}
             </Select>
             {hayFiltro && (
-              <Button variant="ghost" size="icon" onClick={() => { setFiltroTexto(""); setFiltroCategoria(""); }}>
+              <Button variant="ghost" size="icon" onClick={() => { setFiltroTexto(""); setFiltroCategoria(""); }} className="h-11 w-11">
                 <X className="w-4 h-4" />
               </Button>
             )}
@@ -247,9 +247,9 @@ export default function PaginaMovimientos() {
                        {m.notas ? ` · ${m.notas}` : ""}
                      </p>
                    </div>
-                   <div className="flex items-center gap-1">
-                     <span className="font-semibold text-red-600">{formatoMoneda(m.monto)}</span>
-                     <Button size="icon" variant="ghost" onClick={() => editar(m)}><Pencil className="w-4 h-4" /></Button>
+                   <div className="flex items-center gap-1 shrink-0">
+                     <span className="font-semibold text-red-600 mr-1">{formatoMoneda(m.monto)}</span>
+                     <Button size="icon" variant="ghost" onClick={() => editar(m)} className="h-11 w-11"><Pencil className="w-4 h-4" /></Button>
                      <Button size="icon" variant="ghost" onClick={async () => {
                        const confirmado = await confirm({
                          title: "Eliminar movimiento",
@@ -259,7 +259,7 @@ export default function PaginaMovimientos() {
                          variant: "destructive"
                        });
                        if (confirmado) eliminar.mutate(m.id);
-                     }}>
+                     }} className="h-11 w-11">
                        <Trash2 className="w-4 h-4 text-destructive" />
                      </Button>
                    </div>

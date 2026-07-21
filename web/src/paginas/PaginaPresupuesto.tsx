@@ -96,9 +96,9 @@ export default function PaginaPresupuesto() {
         <header className="flex items-center justify-between flex-wrap gap-3">
           <h1 className="text-3xl font-bold">📊 Presupuesto</h1>
           <div className="flex items-center gap-2">
-            <Button size="icon" variant="outline" onClick={() => cambiarMes(-1)}><ChevronLeft className="w-4 h-4" /></Button>
+            <Button size="icon" variant="outline" onClick={() => cambiarMes(-1)} className="h-11 w-11"><ChevronLeft className="w-4 h-4" /></Button>
             <span className="text-sm font-medium min-w-[140px] text-center">{NOMBRES_MES[mes - 1]} {anio}</span>
-            <Button size="icon" variant="outline" onClick={() => cambiarMes(1)}><ChevronRight className="w-4 h-4" /></Button>
+            <Button size="icon" variant="outline" onClick={() => cambiarMes(1)} className="h-11 w-11"><ChevronRight className="w-4 h-4" /></Button>
           </div>
         </header>
 
