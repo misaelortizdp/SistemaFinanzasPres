@@ -12,6 +12,7 @@ import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useConfirm } from "@/lib/useConfirm";
 import { SkeletonTable } from "@/components/ui/skeleton";
+import { obtenerMensajeError, validaciones } from "@/lib/errorUtils";
 
 interface Movimiento {
   id: number; fecha: string; concepto: string;
@@ -43,14 +44,46 @@ export default function PaginaMovimientos() {
   const [cuentaId, setCuentaId] = useState<number | "">("");
   const [monto, setMonto] = useState("0");
   const [notas, setNotas] = useState("");
+  
+  // Estados para validación inline
+  const [errores, setErrores] = useState<Record<string, string>>({});
 
   function limpiar() {
     setEditando(null); setFecha(new Date().toISOString().slice(0, 10));
     setConcepto(""); setCategoriaId(0); setCuentaId(""); setMonto("0"); setNotas("");
+    setErrores({});
+  }
   }
   function editar(m: Movimiento) {
     setEditando(m); setFecha(m.fecha.slice(0, 10)); setConcepto(m.concepto);
     setCategoriaId(m.categoriaId); setCuentaId(m.cuentaId ?? ""); setMonto(String(m.monto)); setNotas(m.notas ?? "");
+    setErrores({});
+  }
+  
+  // Validar campo individual
+  function validarCampo(campo: string, valor: any): string | null {
+    switch (campo) {
+      case "concepto":
+        return validaciones.requerido(valor, "concepto") || validaciones.longitudMinima(valor, 3, "concepto");
+      case "monto":
+        return validaciones.montoPositivo(valor, "monto");
+      case "categoriaId":
+        return !valor || valor === 0 ? "Selecciona una categoría" : null;
+      case "fecha":
+        return validaciones.fechaValida(valor, "fecha");
+      default:
+        return null;
+    }
+  }
+  
+  // Manejar cambio de campo con validación
+  function manejarCampo(campo: string, valor: any, setter: (v: any) => void) {
+    setter(valor);
+    const error = validarCampo(campo, valor);
+    setErrores(prev => ({
+      ...prev,
+      [campo]: error || ""
+    }));
   }
 
   const guardar = useMutation({
@@ -71,7 +104,8 @@ export default function PaginaMovimientos() {
       limpiar();
     },
     onError: (error: any) => {
-      toast.error(error?.response?.data?.error || "No se pudo guardar el movimiento");
+      const mensaje = obtenerMensajeError(error, "No se pudo guardar el movimiento");
+      toast.error(mensaje);
     },
   });
 
@@ -95,16 +129,35 @@ export default function PaginaMovimientos() {
       if (context?.anterior) {
         cliente.setQueryData(["movimientos", anio, mes], context.anterior);
       }
-      toast.error(error?.response?.data?.error || "No se pudo eliminar el movimiento");
+      const mensaje = obtenerMensajeError(error, "No se pudo eliminar el movimiento");
+      toast.error(mensaje);
     },
   });
 
   function enviar(e: FormEvent) {
     e.preventDefault();
-    if (!concepto.trim() || !categoriaId) {
-      toast.error("Falta concepto o categoría");
+    
+    // Validar todos los campos
+    const nuevosErrores: Record<string, string> = {};
+    
+    const errorConcepto = validarCampo("concepto", concepto);
+    if (errorConcepto) nuevosErrores.concepto = errorConcepto;
+    
+    const errorMonto = validarCampo("monto", monto);
+    if (errorMonto) nuevosErrores.monto = errorMonto;
+    
+    const errorCategoria = validarCampo("categoriaId", categoriaId);
+    if (errorCategoria) nuevosErrores.categoriaId = errorCategoria;
+    
+    const errorFecha = validarCampo("fecha", fecha);
+    if (errorFecha) nuevosErrores.fecha = errorFecha;
+    
+    if (Object.keys(nuevosErrores).length > 0) {
+      setErrores(nuevosErrores);
+      toast.error("Por favor, corrige los errores del formulario");
       return;
     }
+    
     guardar.mutate();
   }
 
@@ -156,24 +209,48 @@ export default function PaginaMovimientos() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="space-y-1.5">
                 <Label>Fecha</Label>
-                <Input type="date" required value={fecha} onChange={(e) => setFecha(e.target.value)} className="h-11" />
+                <Input 
+                  type="date" 
+                  value={fecha} 
+                  onChange={(e) => manejarCampo("fecha", e.target.value, setFecha)} 
+                  className={`h-11 ${errores.fecha ? "border-red-500" : ""}`} 
+                />
+                {errores.fecha && <p className="text-xs text-red-600">{errores.fecha}</p>}
               </div>
               <div className="space-y-1.5">
                 <Label>Monto</Label>
-                <Input type="number" step="0.01" required value={monto} onChange={(e) => setMonto(e.target.value)} className="h-11" />
+                <Input 
+                  type="number" 
+                  step="0.01" 
+                  value={monto} 
+                  onChange={(e) => manejarCampo("monto", e.target.value, setMonto)} 
+                  className={`h-11 ${errores.monto ? "border-red-500" : ""}`} 
+                />
+                {errores.monto && <p className="text-xs text-red-600">{errores.monto}</p>}
               </div>
               <div className="space-y-1.5">
                 <Label>Categoría</Label>
-                <Select required value={categoriaId} onChange={(e) => setCategoriaId(Number(e.target.value))} className="h-11">
+                <Select 
+                  value={categoriaId} 
+                  onChange={(e) => manejarCampo("categoriaId", Number(e.target.value), setCategoriaId)} 
+                  className={`h-11 ${errores.categoriaId ? "border-red-500" : ""}`}
+                >
                   <option value="">— Selecciona —</option>
                   {categoriasNoIngreso.map(c => <option key={c.id} value={c.id}>{c.icono} {c.nombre}</option>)}
                 </Select>
+                {errores.categoriaId && <p className="text-xs text-red-600">{errores.categoriaId}</p>}
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Concepto</Label>
-                <Input required value={concepto} onChange={(e) => setConcepto(e.target.value)} placeholder="Comida en restaurante, etc." className="h-11" />
+                <Input 
+                  value={concepto} 
+                  onChange={(e) => manejarCampo("concepto", e.target.value, setConcepto)} 
+                  placeholder="Comida en restaurante, etc." 
+                  className={`h-11 ${errores.concepto ? "border-red-500" : ""}`} 
+                />
+                {errores.concepto && <p className="text-xs text-red-600">{errores.concepto}</p>}
               </div>
               <div className="space-y-1.5">
                 <Label>Cuenta (opcional)</Label>
