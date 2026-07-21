@@ -14,7 +14,6 @@ import { usarAutenticacion } from "@/autenticacion/ContextoAutenticacion";
 import { formatoMoneda, mesActual, NOMBRES_MES } from "@/lib/hooks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SkeletonDashboard } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
 
 interface Movimiento { id: number; fecha: string; concepto: string; monto: number; nombreCategoria?: string }
 interface PatrimonioActual { totalActivos: number; totalPasivos: number; patrimonioNeto: number }
