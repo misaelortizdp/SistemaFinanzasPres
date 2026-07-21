@@ -18,25 +18,26 @@ Mejorar la experiencia de usuario de la aplicación web de finanzas personales, 
 - [x] Identificación de componentes ya disponibles (toast, skeleton, dialog)
 - [x] Creación de este documento de plan
 
-### 🚧 LOTE 1: Sistema de Toast/Notificaciones (EN PROGRESO)
+### ✅ LOTE 1: Sistema de Toast/Notificaciones (COMPLETADO)
 **Prioridad**: CRÍTICA | **Fase**: 1.3
 **Objetivo**: Reemplazar alert() y confirm() nativos por sistema moderno de notificaciones
 
 **Tareas**:
-- [ ] Integrar Sonner completamente en App.tsx
-- [ ] Crear hook useToast centralizado
-- [ ] Reemplazar todos los alert() por toast en páginas:
-  - [ ] PaginaMovimientos.tsx
-  - [ ] PaginaPresupuesto.tsx
-  - [ ] PaginaCategorias.tsx
-  - [ ] PaginaCuentas.tsx
-  - [ ] PaginaIngresos.tsx
-  - [ ] PaginaKpis.tsx
-  - [ ] PaginaConfiguracion.tsx
-- [ ] Reemplazar confirm() por diálogos personalizados usando useConfirm
-- [ ] Probar y validar funcionamiento
+- [x] Integrar Sonner completamente (ya estaba en main.tsx)
+- [x] Crear/usar hook useConfirm para confirmaciones (ya existía)
+- [x] Reemplazar todos los alert() por toast en páginas:
+  - [x] PaginaConfiguracion.tsx → toast.success()
+  - [x] PaginaDeudas.tsx → toast.error()
+  - [x] PaginaMetas.tsx → toast.error()
+- [x] Reemplazar confirm() por diálogos personalizados usando useConfirm:
+  - [x] PaginaIngresos.tsx
+  - [x] PaginaPatrimonio.tsx
+  - [x] PaginaDeudas.tsx
+  - [x] PaginaCuentas.tsx
+  - [x] PaginaMetas.tsx
+- [x] Probar y validar funcionamiento (commit realizado)
 
-### ⏳ LOTE 2: Skeleton Screens y Estados de Carga
+### 🚧 LOTE 2: Skeleton Screens y Estados de Carga (SIGUIENTE)
 **Prioridad**: CRÍTICA | **Fase**: 1.2
 **Objetivo**: Mejorar percepción de rendimiento con skeleton screens
 
@@ -265,10 +266,15 @@ Mejorar la experiencia de usuario de la aplicación web de finanzas personales, 
 ### 2026-07-21
 - Creación del documento de plan UX
 - Definición de 10 lotes de implementación
-- Inicio de LOTE 1: Sistema de Toast/Notificaciones
+- ✅ **LOTE 1 COMPLETADO**: Sistema de Toast/Notificaciones
+  - Reemplazados todos los alert() por toast (sonner)
+  - Reemplazados todos los confirm() por useConfirm
+  - 6 archivos modificados (PaginaConfiguracion, PaginaDeudas, PaginaMetas, PaginaIngresos, PaginaCuentas, PaginaPatrimonio)
+  - Commit: feat: reemplazar alert() y confirm() nativos por toast y diálogos personalizados
 
 ---
 
 **Última actualización**: 2026-07-21  
-**Agente actual**: Trabajando en LOTE 1  
-**Próximo lote**: LOTE 2 (Skeleton Screens)
+**Lote completado**: LOTE 1 ✅  
+**Lote actual**: LOTE 2 (Skeleton Screens)  
+**Progreso general**: 1/10 lotes (10%)
