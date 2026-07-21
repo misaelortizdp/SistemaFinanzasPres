@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, Copy } from "lucide-react";
+import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { formatoMoneda, mesActual, NOMBRES_MES, useCategorias } from "@/lib/hooks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useConfirm } from "@/lib/useConfirm";
 
 interface Linea {
   id: number; categoriaId: number; nombreCategoria?: string;
@@ -20,6 +22,7 @@ const PILARES = [
 
 export default function PaginaPresupuesto() {
   const cliente = useQueryClient();
+  const { confirm, ConfirmDialog } = useConfirm();
   const ahora = mesActual();
   const [anio, setAnio] = useState(ahora.anio);
   const [mes, setMes] = useState(ahora.mes);
@@ -41,7 +44,10 @@ export default function PaginaPresupuesto() {
     mutationFn: async () => (await api.post(`/api/presupuesto/copiar-mes-anterior?anio=${anio}&mes=${mes}`)).data,
     onSuccess: (datos: any) => {
       cliente.invalidateQueries({ queryKey: ["presupuesto", anio, mes] });
-      alert(`Copiadas ${datos?.copiadas ?? 0} categorías del mes anterior.`);
+      toast.success(`Copiadas ${datos?.copiadas ?? 0} categorías del mes anterior`);
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.error || "No se pudo copiar el mes anterior");
     },
   });
 
@@ -63,15 +69,17 @@ export default function PaginaPresupuesto() {
   const totalEjecutado = filas.reduce((s, f) => s + f.ejecutado, 0);
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      <header className="flex items-center justify-between flex-wrap gap-3">
-        <h1 className="text-3xl font-bold">📊 Presupuesto</h1>
-        <div className="flex items-center gap-2">
-          <Button size="icon" variant="outline" onClick={() => cambiarMes(-1)}><ChevronLeft className="w-4 h-4" /></Button>
-          <span className="text-sm font-medium min-w-[140px] text-center">{NOMBRES_MES[mes - 1]} {anio}</span>
-          <Button size="icon" variant="outline" onClick={() => cambiarMes(1)}><ChevronRight className="w-4 h-4" /></Button>
-        </div>
-      </header>
+    <>
+      <ConfirmDialog />
+      <div className="max-w-5xl mx-auto space-y-6">
+        <header className="flex items-center justify-between flex-wrap gap-3">
+          <h1 className="text-3xl font-bold">📊 Presupuesto</h1>
+          <div className="flex items-center gap-2">
+            <Button size="icon" variant="outline" onClick={() => cambiarMes(-1)}><ChevronLeft className="w-4 h-4" /></Button>
+            <span className="text-sm font-medium min-w-[140px] text-center">{NOMBRES_MES[mes - 1]} {anio}</span>
+            <Button size="icon" variant="outline" onClick={() => cambiarMes(1)}><ChevronRight className="w-4 h-4" /></Button>
+          </div>
+        </header>
 
       {/* Resumen global */}
       <Card>
@@ -80,8 +88,14 @@ export default function PaginaPresupuesto() {
             <p className="text-sm text-muted-foreground">Total ejecutado / presupuestado</p>
             <p className="text-xl font-bold">{formatoMoneda(totalEjecutado)} / {formatoMoneda(totalPresupuestado)}</p>
           </div>
-          <Button variant="outline" onClick={() => {
-            if (confirm("¿Importar montos del mes anterior para categorías sin presupuesto?")) copiarMesAnterior.mutate();
+          <Button variant="outline" onClick={async () => {
+            const confirmado = await confirm({
+              title: "Copiar mes anterior",
+              description: "¿Importar montos del mes anterior para categorías sin presupuesto?",
+              confirmText: "Copiar",
+              cancelText: "Cancelar"
+            });
+            if (confirmado) copiarMesAnterior.mutate();
           }}>
             <Copy className="w-4 h-4 mr-2" />Copiar mes anterior
           </Button>
@@ -167,6 +181,7 @@ export default function PaginaPresupuesto() {
           })}
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }

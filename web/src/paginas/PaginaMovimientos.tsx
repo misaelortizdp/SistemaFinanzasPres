@@ -1,6 +1,7 @@
 import { FormEvent, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pencil, Trash2, Plus, ChevronLeft, ChevronRight, Search, X } from "lucide-react";
+import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { formatoFecha, formatoMoneda, mesActual, NOMBRES_MES, useCategorias, useCuentas } from "@/lib/hooks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { useConfirm } from "@/lib/useConfirm";
 
 interface Movimiento {
   id: number; fecha: string; concepto: string;
@@ -19,6 +21,7 @@ interface Movimiento {
 
 export default function PaginaMovimientos() {
   const cliente = useQueryClient();
+  const { confirm, ConfirmDialog } = useConfirm();
   const ahora = mesActual();
   const [anio, setAnio] = useState(ahora.anio);
   const [mes, setMes] = useState(ahora.mes);
@@ -63,7 +66,11 @@ export default function PaginaMovimientos() {
       cliente.invalidateQueries({ queryKey: ["movimientos"] });
       cliente.invalidateQueries({ queryKey: ["cuentas"] });
       cliente.invalidateQueries({ queryKey: ["patrimonio-actual"] });
+      toast.success(editando ? "Movimiento actualizado" : "Movimiento agregado con éxito");
       limpiar();
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.error || "No se pudo guardar el movimiento");
     },
   });
 
@@ -72,13 +79,17 @@ export default function PaginaMovimientos() {
     onSuccess: () => {
       cliente.invalidateQueries({ queryKey: ["movimientos"] });
       cliente.invalidateQueries({ queryKey: ["cuentas"] });
+      toast.success("Movimiento eliminado");
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.error || "No se pudo eliminar el movimiento");
     },
   });
 
   function enviar(e: FormEvent) {
     e.preventDefault();
     if (!concepto.trim() || !categoriaId) {
-      alert("Falta concepto o categoría");
+      toast.error("Falta concepto o categoría");
       return;
     }
     guardar.mutate();
@@ -113,15 +124,17 @@ export default function PaginaMovimientos() {
   const categoriasNoIngreso = categorias.filter(c => c.tipo !== 4);
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <header className="flex items-center justify-between flex-wrap gap-3">
-        <h1 className="text-3xl font-bold">🛒 Movimientos</h1>
-        <div className="flex items-center gap-2">
-          <Button size="icon" variant="outline" onClick={() => cambiarMes(-1)}><ChevronLeft className="w-4 h-4" /></Button>
-          <span className="text-sm font-medium min-w-[140px] text-center">{NOMBRES_MES[mes - 1]} {anio}</span>
-          <Button size="icon" variant="outline" onClick={() => cambiarMes(1)}><ChevronRight className="w-4 h-4" /></Button>
-        </div>
-      </header>
+    <>
+      <ConfirmDialog />
+      <div className="max-w-4xl mx-auto space-y-6">
+        <header className="flex items-center justify-between flex-wrap gap-3">
+          <h1 className="text-3xl font-bold">🛒 Movimientos</h1>
+          <div className="flex items-center gap-2">
+            <Button size="icon" variant="outline" onClick={() => cambiarMes(-1)}><ChevronLeft className="w-4 h-4" /></Button>
+            <span className="text-sm font-medium min-w-[140px] text-center">{NOMBRES_MES[mes - 1]} {anio}</span>
+            <Button size="icon" variant="outline" onClick={() => cambiarMes(1)}><ChevronRight className="w-4 h-4" /></Button>
+          </div>
+        </header>
 
       <Card>
         <CardHeader><CardTitle>{editando ? "Editar movimiento" : "Nuevo movimiento"}</CardTitle></CardHeader>
@@ -224,7 +237,16 @@ export default function PaginaMovimientos() {
                    <div className="flex items-center gap-1">
                      <span className="font-semibold text-red-600">{formatoMoneda(m.monto)}</span>
                      <Button size="icon" variant="ghost" onClick={() => editar(m)}><Pencil className="w-4 h-4" /></Button>
-                     <Button size="icon" variant="ghost" onClick={() => { if (confirm("¿Eliminar movimiento?")) eliminar.mutate(m.id); }}>
+                     <Button size="icon" variant="ghost" onClick={async () => {
+                       const confirmado = await confirm({
+                         title: "Eliminar movimiento",
+                         description: "¿Estás seguro de eliminar este movimiento? Esta acción no se puede deshacer.",
+                         confirmText: "Eliminar",
+                         cancelText: "Cancelar",
+                         variant: "destructive"
+                       });
+                       if (confirmado) eliminar.mutate(m.id);
+                     }}>
                        <Trash2 className="w-4 h-4 text-destructive" />
                      </Button>
                    </div>
@@ -234,6 +256,7 @@ export default function PaginaMovimientos() {
            )}
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </>
   );
 }
