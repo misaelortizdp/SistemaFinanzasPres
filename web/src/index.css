@@ -26,3 +26,9 @@
   * { @apply border-border; }
   body { @apply bg-background text-foreground; }
 }
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}

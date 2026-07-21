@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useConfirm } from "@/lib/useConfirm";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type TipoCategoria = 1 | 2 | 3 | 4;
 
@@ -154,7 +155,38 @@ export default function PaginaCategorias() {
       </Card>
 
       {isLoading ? (
-        <p className="text-muted-foreground">Cargando…</p>
+        <div className="space-y-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i}>
+              <CardHeader className="pb-2 pt-4 px-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="h-4 w-4 rounded-full" />
+                    <Skeleton className="h-4 w-24" />
+                  </div>
+                  <Skeleton className="h-4 w-8" />
+                </div>
+              </CardHeader>
+              <CardContent className="px-4 pb-3">
+                <ul className="divide-y">
+                  {[1, 2, 3].map((j) => (
+                    <li key={j} className="flex items-center justify-between py-2.5">
+                      <div className="flex items-center gap-3">
+                        <Skeleton className="h-6 w-6 rounded-full" />
+                        <Skeleton className="h-4 w-32" />
+                      </div>
+                      <div className="flex gap-1">
+                        <Skeleton className="h-8 w-8 rounded" />
+                        <Skeleton className="h-8 w-8 rounded" />
+                        <Skeleton className="h-8 w-8 rounded" />
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       ) : categorias.length === 0 ? (
         <p className="text-muted-foreground">Aún no tienes categorías.</p>
       ) : (

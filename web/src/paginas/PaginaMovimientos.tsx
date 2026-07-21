@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useConfirm } from "@/lib/useConfirm";
+import { SkeletonTable } from "@/components/ui/skeleton";
 
 interface Movimiento {
   id: number; fecha: string; concepto: string;
@@ -219,7 +220,7 @@ export default function PaginaMovimientos() {
             )}
           </div>
 
-          {isLoading ? <p className="text-muted-foreground">Cargando…</p> :
+          {isLoading ? <SkeletonTable rows={8} /> :
            movimientosFiltrados.length === 0 ? (
              <p className="text-muted-foreground">{hayFiltro ? "Sin resultados para ese filtro." : "Sin movimientos este mes."}</p>
            ) : (

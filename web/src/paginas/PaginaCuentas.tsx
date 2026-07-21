@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useConfirm } from "@/lib/useConfirm";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function PaginaCuentas() {
   const cliente = useQueryClient();
@@ -73,8 +74,22 @@ export default function PaginaCuentas() {
       <Card>
         <CardHeader><CardTitle>Tus cuentas ({cuentas.length})</CardTitle></CardHeader>
         <CardContent>
-          {isLoading ? <p className="text-muted-foreground">Cargando…</p> :
-           cuentas.length === 0 ? <p className="text-muted-foreground">Sin cuentas.</p> :
+          {isLoading ? (
+            <div className="space-y-3">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="py-3 flex items-center justify-between">
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-4 w-20" />
+                  </div>
+                  <div className="flex gap-1">
+                    <Skeleton className="h-9 w-9 rounded" />
+                    <Skeleton className="h-9 w-9 rounded" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : cuentas.length === 0 ? <p className="text-muted-foreground">Sin cuentas.</p> :
            <ul className="divide-y">
              {cuentas.map((c) => (
                <li key={c.id} className="py-3 flex items-center justify-between">

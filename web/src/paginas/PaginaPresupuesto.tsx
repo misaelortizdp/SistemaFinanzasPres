@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useConfirm } from "@/lib/useConfirm";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Linea {
   id: number; categoriaId: number; nombreCategoria?: string;
@@ -104,7 +105,34 @@ export default function PaginaPresupuesto() {
 
       {/* Pilares */}
       {isLoading ? (
-        <p className="text-muted-foreground">Cargando…</p>
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <Card key={i}>
+              <CardContent className="pt-5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <Skeleton className="h-5 w-32" />
+                  <Skeleton className="h-4 w-24" />
+                </div>
+                <Skeleton className="h-2 w-full" />
+                {[1, 2, 3].map((j) => (
+                  <div key={j} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Skeleton className="h-4 w-4 rounded-full" />
+                        <Skeleton className="h-4 w-28" />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Skeleton className="h-4 w-16" />
+                        <Skeleton className="h-8 w-28" />
+                      </div>
+                    </div>
+                    <Skeleton className="h-1 w-full" />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       ) : filas.length === 0 ? (
         <p className="text-muted-foreground">No tienes categorías. Crea algunas en Categorías.</p>
       ) : (
