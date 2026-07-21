@@ -1,6 +1,7 @@
 import { FormEvent, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Pencil, Trash2, Plus } from "lucide-react";
+import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { useCuentas, formatoMoneda, Cuenta } from "@/lib/hooks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useConfirm } from "@/lib/useConfirm";
 import { Skeleton } from "@/components/ui/skeleton";
+import { obtenerMensajeError, validaciones } from "@/lib/errorUtils";
 
 export default function PaginaCuentas() {
   const cliente = useQueryClient();
@@ -17,9 +19,43 @@ export default function PaginaCuentas() {
   const [editando, setEditando] = useState<Cuenta | null>(null);
   const [nombre, setNombre] = useState("");
   const [saldo, setSaldo] = useState("0");
+  const [errores, setErrores] = useState<Record<string, string>>({});
 
-  function limpiar() { setEditando(null); setNombre(""); setSaldo("0"); }
-  function editar(c: Cuenta) { setEditando(c); setNombre(c.nombre); setSaldo(String(c.saldo)); }
+  function limpiar() { 
+    setEditando(null); 
+    setNombre(""); 
+    setSaldo("0"); 
+    setErrores({});
+  }
+  
+  function editar(c: Cuenta) { 
+    setEditando(c); 
+    setNombre(c.nombre); 
+    setSaldo(String(c.saldo));
+    setErrores({});
+  }
+  
+  // Validar campo individual
+  function validarCampo(campo: string, valor: any): string | null {
+    switch (campo) {
+      case "nombre":
+        return validaciones.requerido(valor, "nombre") || validaciones.longitudMinima(valor, 2, "nombre");
+      case "saldo":
+        return validaciones.montoValido(valor, "saldo");
+      default:
+        return null;
+    }
+  }
+  
+  // Manejar cambio de campo con validación
+  function manejarCampo(campo: string, valor: any, setter: (v: any) => void) {
+    setter(valor);
+    const error = validarCampo(campo, valor);
+    setErrores(prev => ({
+      ...prev,
+      [campo]: error || ""
+    }));
+  }
 
   const guardar = useMutation({
     mutationFn: async () => {
@@ -45,13 +81,16 @@ export default function PaginaCuentas() {
     },
     onSuccess: () => { 
       cliente.invalidateQueries({ queryKey: ["cuentas"] }); 
+      toast.success(editando ? "Cuenta actualizada" : "Cuenta creada con éxito");
       limpiar(); 
     },
-    onError: (_error, _variables, context) => {
+    onError: (error, _variables, context) => {
       // Revertir al estado anterior en caso de error
       if (context?.anterior) {
         cliente.setQueryData(["cuentas"], context.anterior);
       }
+      const mensaje = obtenerMensajeError(error, "No se pudo guardar la cuenta");
+      toast.error(mensaje);
     },
   });
 
@@ -66,15 +105,39 @@ export default function PaginaCuentas() {
       
       return { anterior };
     },
-    onSuccess: () => cliente.invalidateQueries({ queryKey: ["cuentas"] }),
-    onError: (_error, _variables, context) => {
+    onSuccess: () => {
+      cliente.invalidateQueries({ queryKey: ["cuentas"] });
+      toast.success("Cuenta eliminada");
+    },
+    onError: (error, _variables, context) => {
       if (context?.anterior) {
         cliente.setQueryData(["cuentas"], context.anterior);
       }
+      const mensaje = obtenerMensajeError(error, "No se pudo eliminar la cuenta");
+      toast.error(mensaje);
     },
   });
 
-  function enviar(e: FormEvent) { e.preventDefault(); if (!nombre.trim()) return; guardar.mutate(); }
+  function enviar(e: FormEvent) { 
+    e.preventDefault(); 
+    
+    // Validar todos los campos
+    const nuevosErrores: Record<string, string> = {};
+    
+    const errorNombre = validarCampo("nombre", nombre);
+    if (errorNombre) nuevosErrores.nombre = errorNombre;
+    
+    const errorSaldo = validarCampo("saldo", saldo);
+    if (errorSaldo) nuevosErrores.saldo = errorSaldo;
+    
+    if (Object.keys(nuevosErrores).length > 0) {
+      setErrores(nuevosErrores);
+      toast.error("Por favor, corrige los errores del formulario");
+      return;
+    }
+    
+    guardar.mutate(); 
+  }
 
   const total = cuentas.reduce((s, c) => s + c.saldo, 0);
 
@@ -93,11 +156,26 @@ export default function PaginaCuentas() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="n">Nombre</Label>
-                <Input id="n" required value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Cuenta bancaria, Efectivo, ..." className="h-11" />
+                <Input 
+                  id="n" 
+                  value={nombre} 
+                  onChange={(e) => manejarCampo("nombre", e.target.value, setNombre)} 
+                  placeholder="Cuenta bancaria, Efectivo, ..." 
+                  className={`h-11 ${errores.nombre ? "border-red-500" : ""}`} 
+                />
+                {errores.nombre && <p className="text-xs text-red-600">{errores.nombre}</p>}
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="s">Saldo</Label>
-                <Input id="s" type="number" step="0.01" value={saldo} onChange={(e) => setSaldo(e.target.value)} className="h-11" />
+                <Input 
+                  id="s" 
+                  type="number" 
+                  step="0.01" 
+                  value={saldo} 
+                  onChange={(e) => manejarCampo("saldo", e.target.value, setSaldo)} 
+                  className={`h-11 ${errores.saldo ? "border-red-500" : ""}`} 
+                />
+                {errores.saldo && <p className="text-xs text-red-600">{errores.saldo}</p>}
               </div>
             </div>
             <div className="flex gap-2">
