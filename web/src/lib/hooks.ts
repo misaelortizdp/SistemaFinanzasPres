@@ -34,16 +34,16 @@ export function useCuentas() {
 }
 
 export function formatoMoneda(v: number, fraccion = 0) {
-  return new Intl.NumberFormat("es-MX", {
+  return new Intl.NumberFormat("es-CO", {
     style: "currency",
-    currency: "MXN",
+    currency: "COP",
     maximumFractionDigits: fraccion,
   }).format(v);
 }
 
 export function formatoFecha(iso: string | Date) {
   const d = typeof iso === "string" ? new Date(iso) : iso;
-  return d.toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "numeric" });
+  return d.toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" });
 }
 
 export function mesActual() {

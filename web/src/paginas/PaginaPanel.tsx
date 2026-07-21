@@ -12,6 +12,7 @@ import { api } from "@/lib/api";
 import { usarAutenticacion } from "@/autenticacion/ContextoAutenticacion";
 import { formatoMoneda, mesActual, NOMBRES_MES } from "@/lib/hooks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SkeletonDashboard } from "@/components/ui/skeleton";
 
 interface Movimiento { id: number; fecha: string; concepto: string; monto: number; nombreCategoria?: string }
 interface PatrimonioActual { totalActivos: number; totalPasivos: number; patrimonioNeto: number }
@@ -48,12 +49,12 @@ export default function PaginaPanel() {
   const { usuario } = usarAutenticacion();
   const { anio, mes } = mesActual();
 
-  const { data: resumen } = useQuery<ResumenPanel>({
+  const { data: resumen, isLoading: loadingResumen } = useQuery<ResumenPanel>({
     queryKey: ["panel-resumen"],
     queryFn: async () => (await api.get("/api/panel/resumen")).data,
   });
 
-  const { data: kpis } = useQuery<Kpis>({
+  const { data: kpis, isLoading: loadingKpis } = useQuery<Kpis>({
     queryKey: ["panel-kpis"],
     queryFn: async () => (await api.get("/api/panel/kpis")).data,
   });
@@ -96,6 +97,11 @@ export default function PaginaPanel() {
   const fondoPct = kpis && kpis.fondoEmergenciaMeta > 0
     ? Math.min(100, (kpis.fondoEmergenciaActual / kpis.fondoEmergenciaMeta) * 100)
     : 0;
+
+  // Mostrar skeleton mientras carga
+  if (loadingResumen || loadingKpis) {
+    return <SkeletonDashboard />;
+  }
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -323,7 +329,7 @@ export default function PaginaPanel() {
                   <div>
                     <p className="font-medium text-sm">{m.concepto}</p>
                     <p className="text-xs text-muted-foreground">
-                      {m.nombreCategoria} · {new Date(m.fecha).toLocaleDateString("es-MX", { day: "2-digit", month: "short" })}
+                      {m.nombreCategoria} · {new Date(m.fecha).toLocaleDateString("es-CO", { day: "2-digit", month: "short" })}
                     </p>
                   </div>
                   <span className="font-semibold text-red-600">{formatoMoneda(m.monto)}</span>
