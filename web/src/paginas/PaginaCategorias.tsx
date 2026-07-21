@@ -1,11 +1,13 @@
 import { FormEvent, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Trash2, Pencil, Plus, EyeOff, Eye } from "lucide-react";
+import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useConfirm } from "@/lib/useConfirm";
 
 type TipoCategoria = 1 | 2 | 3 | 4;
 
@@ -28,6 +30,7 @@ interface Categoria {
 
 export default function PaginaCategorias() {
   const cliente = useQueryClient();
+  const { confirm, ConfirmDialog } = useConfirm();
 
   const { data: categorias = [], isLoading } = useQuery({
     queryKey: ["categorias"],
@@ -64,7 +67,11 @@ export default function PaginaCategorias() {
     },
     onSuccess: () => {
       cliente.invalidateQueries({ queryKey: ["categorias"] });
+      toast.success(editando ? "Categoría actualizada" : "Categoría creada con éxito");
       limpiarFormulario();
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.error || "No se pudo guardar la categoría");
     },
   });
 
@@ -77,10 +84,13 @@ export default function PaginaCategorias() {
     mutationFn: async (id: number) => {
       await api.delete(`/api/categorias/${id}`);
     },
-    onSuccess: () => cliente.invalidateQueries({ queryKey: ["categorias"] }),
+    onSuccess: () => {
+      cliente.invalidateQueries({ queryKey: ["categorias"] });
+      toast.success("Categoría eliminada");
+    },
     onError: (err: any) => {
       const msg = err?.response?.data?.error ?? "No se pudo eliminar la categoría.";
-      alert(msg);
+      toast.error(msg);
     },
   });
 
@@ -91,10 +101,12 @@ export default function PaginaCategorias() {
   }
 
   return (
-    <div className="container mx-auto max-w-3xl py-8 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">🗂 Categorías</h1>
-      </div>
+    <>
+      <ConfirmDialog />
+      <div className="container mx-auto max-w-3xl py-8 space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold">🗂 Categorías</h1>
+        </div>
 
       <Card>
         <CardHeader>
@@ -187,8 +199,15 @@ export default function PaginaCategorias() {
                             size="icon"
                             variant="ghost"
                             className="h-8 w-8"
-                            onClick={() => {
-                              if (confirm(`¿Eliminar "${c.nombre}"? Si tiene movimientos, solo podrás desactivarla.`)) eliminar.mutate(c.id);
+                            onClick={async () => {
+                              const confirmado = await confirm({
+                                title: "Eliminar categoría",
+                                description: `¿Eliminar "${c.nombre}"? Si tiene movimientos, solo podrás desactivarla.`,
+                                confirmText: "Eliminar",
+                                cancelText: "Cancelar",
+                                variant: "destructive"
+                              });
+                              if (confirmado) eliminar.mutate(c.id);
                             }}
                           >
                             <Trash2 className="w-3.5 h-3.5 text-destructive" />
@@ -203,6 +222,7 @@ export default function PaginaCategorias() {
           })}
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }
