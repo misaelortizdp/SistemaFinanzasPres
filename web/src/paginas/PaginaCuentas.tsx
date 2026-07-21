@@ -7,9 +7,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useConfirm } from "@/lib/useConfirm";
 
 export default function PaginaCuentas() {
   const cliente = useQueryClient();
+  const { confirm, ConfirmDialog } = useConfirm();
   const { data: cuentas = [], isLoading } = useCuentas();
   const [editando, setEditando] = useState<Cuenta | null>(null);
   const [nombre, setNombre] = useState("");
@@ -38,6 +40,7 @@ export default function PaginaCuentas() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
+      <ConfirmDialog />
       <header>
         <h1 className="text-3xl font-bold">🏦 Cuentas</h1>
         <p className="text-muted-foreground">Saldo total: <span className="font-semibold">{formatoMoneda(total)}</span></p>
@@ -83,7 +86,16 @@ export default function PaginaCuentas() {
                  </div>
                  <div className="flex gap-1">
                    <Button size="icon" variant="ghost" onClick={() => editar(c)}><Pencil className="w-4 h-4" /></Button>
-                   <Button size="icon" variant="ghost" onClick={() => { if (confirm(`¿Eliminar "${c.nombre}"?`)) eliminar.mutate(c.id); }}>
+                   <Button size="icon" variant="ghost" onClick={async () => {
+                     const confirmado = await confirm({
+                       title: "¿Eliminar cuenta?",
+                       description: `¿Estás seguro de que deseas eliminar la cuenta "${c.nombre}"? Esta acción no se puede deshacer.`,
+                       confirmText: "Eliminar",
+                       cancelText: "Cancelar",
+                       variant: "destructive"
+                     });
+                     if (confirmado) eliminar.mutate(c.id);
+                   }}>
                      <Trash2 className="w-4 h-4 text-destructive" />
                    </Button>
                  </div>
