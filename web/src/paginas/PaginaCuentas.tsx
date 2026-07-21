@@ -27,12 +27,51 @@ export default function PaginaCuentas() {
       if (editando) await api.put(`/api/cuentas/${editando.id}`, { id: editando.id, ...cuerpo });
       else await api.post("/api/cuentas", cuerpo);
     },
-    onSuccess: () => { cliente.invalidateQueries({ queryKey: ["cuentas"] }); limpiar(); },
+    onMutate: async () => {
+      // Cancelar queries pendientes
+      await cliente.cancelQueries({ queryKey: ["cuentas"] });
+      
+      // Snapshot del estado anterior
+      const anterior = cliente.getQueryData(["cuentas"]);
+      
+      // Actualización optimista
+      if (editando) {
+        cliente.setQueryData(["cuentas"], (old: Cuenta[] = []) =>
+          old.map(c => c.id === editando.id ? { ...c, nombre, saldo: parseFloat(saldo) || 0 } : c)
+        );
+      }
+      
+      return { anterior };
+    },
+    onSuccess: () => { 
+      cliente.invalidateQueries({ queryKey: ["cuentas"] }); 
+      limpiar(); 
+    },
+    onError: (_error, _variables, context) => {
+      // Revertir al estado anterior en caso de error
+      if (context?.anterior) {
+        cliente.setQueryData(["cuentas"], context.anterior);
+      }
+    },
   });
 
   const eliminar = useMutation({
     mutationFn: async (id: number) => { await api.delete(`/api/cuentas/${id}`); },
+    onMutate: async (id: number) => {
+      await cliente.cancelQueries({ queryKey: ["cuentas"] });
+      const anterior = cliente.getQueryData(["cuentas"]);
+      
+      // Actualización optimista: eliminar de la lista
+      cliente.setQueryData(["cuentas"], (old: Cuenta[] = []) => old.filter(c => c.id !== id));
+      
+      return { anterior };
+    },
     onSuccess: () => cliente.invalidateQueries({ queryKey: ["cuentas"] }),
+    onError: (_error, _variables, context) => {
+      if (context?.anterior) {
+        cliente.setQueryData(["cuentas"], context.anterior);
+      }
+    },
   });
 
   function enviar(e: FormEvent) { e.preventDefault(); if (!nombre.trim()) return; guardar.mutate(); }

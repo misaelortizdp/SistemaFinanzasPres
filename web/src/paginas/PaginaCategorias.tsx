@@ -66,30 +66,73 @@ export default function PaginaCategorias() {
         await api.post("/api/categorias", cuerpo);
       }
     },
+    onMutate: async () => {
+      await cliente.cancelQueries({ queryKey: ["categorias"] });
+      const anterior = cliente.getQueryData(["categorias"]);
+      
+      if (editando) {
+        cliente.setQueryData(["categorias"], (old: Categoria[] = []) =>
+          old.map(c => c.id === editando.id ? { ...c, nombre, tipo, icono: icono || null } : c)
+        );
+      }
+      
+      return { anterior };
+    },
     onSuccess: () => {
       cliente.invalidateQueries({ queryKey: ["categorias"] });
       toast.success(editando ? "Categoría actualizada" : "Categoría creada con éxito");
       limpiarFormulario();
     },
-    onError: (error: any) => {
+    onError: (error: any, _variables, context) => {
+      if (context?.anterior) {
+        cliente.setQueryData(["categorias"], context.anterior);
+      }
       toast.error(error?.response?.data?.error || "No se pudo guardar la categoría");
     },
   });
 
   const toggleActiva = useMutation({
     mutationFn: async (id: number) => api.patch(`/api/categorias/${id}/toggle-activa`),
+    onMutate: async (id: number) => {
+      await cliente.cancelQueries({ queryKey: ["categorias"] });
+      const anterior = cliente.getQueryData(["categorias"]);
+      
+      // Actualización optimista: toggle activa
+      cliente.setQueryData(["categorias"], (old: Categoria[] = []) =>
+        old.map(c => c.id === id ? { ...c, activa: !c.activa } : c)
+      );
+      
+      return { anterior };
+    },
     onSuccess: () => cliente.invalidateQueries({ queryKey: ["categorias"] }),
+    onError: (_error, _variables, context) => {
+      if (context?.anterior) {
+        cliente.setQueryData(["categorias"], context.anterior);
+      }
+    },
   });
 
   const eliminar = useMutation({
     mutationFn: async (id: number) => {
       await api.delete(`/api/categorias/${id}`);
     },
+    onMutate: async (id: number) => {
+      await cliente.cancelQueries({ queryKey: ["categorias"] });
+      const anterior = cliente.getQueryData(["categorias"]);
+      
+      // Actualización optimista: eliminar de la lista
+      cliente.setQueryData(["categorias"], (old: Categoria[] = []) => old.filter(c => c.id !== id));
+      
+      return { anterior };
+    },
     onSuccess: () => {
       cliente.invalidateQueries({ queryKey: ["categorias"] });
       toast.success("Categoría eliminada");
     },
-    onError: (err: any) => {
+    onError: (err: any, _variables, context) => {
+      if (context?.anterior) {
+        cliente.setQueryData(["categorias"], context.anterior);
+      }
       const msg = err?.response?.data?.error ?? "No se pudo eliminar la categoría.";
       toast.error(msg);
     },

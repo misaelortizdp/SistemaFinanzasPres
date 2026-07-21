@@ -38,7 +38,27 @@ export default function PaginaPresupuesto() {
     mutationFn: async (datos: { categoriaId: number; monto: number }) => {
       await api.put("/api/presupuesto", { categoriaId: datos.categoriaId, anio, mes, monto: datos.monto });
     },
+    onMutate: async (datos: { categoriaId: number; monto: number }) => {
+      await cliente.cancelQueries({ queryKey: ["presupuesto", anio, mes] });
+      const anterior = cliente.getQueryData(["presupuesto", anio, mes]);
+      
+      // Actualización optimista
+      cliente.setQueryData(["presupuesto", anio, mes], (old: Linea[] = []) => {
+        const existe = old.find(l => l.categoriaId === datos.categoriaId);
+        if (existe) {
+          return old.map(l => l.categoriaId === datos.categoriaId ? { ...l, monto: datos.monto } : l);
+        }
+        return old;
+      });
+      
+      return { anterior };
+    },
     onSuccess: () => cliente.invalidateQueries({ queryKey: ["presupuesto", anio, mes] }),
+    onError: (_error, _variables, context) => {
+      if (context?.anterior) {
+        cliente.setQueryData(["presupuesto", anio, mes], context.anterior);
+      }
+    },
   });
 
   const copiarMesAnterior = useMutation({

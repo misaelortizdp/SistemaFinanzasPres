@@ -77,12 +77,24 @@ export default function PaginaMovimientos() {
 
   const eliminar = useMutation({
     mutationFn: async (id: number) => { await api.delete(`/api/movimientos/${id}`); },
+    onMutate: async (id: number) => {
+      await cliente.cancelQueries({ queryKey: ["movimientos", anio, mes] });
+      const anterior = cliente.getQueryData(["movimientos", anio, mes]);
+      
+      // Actualización optimista: eliminar de la lista
+      cliente.setQueryData(["movimientos", anio, mes], (old: Movimiento[] = []) => old.filter(m => m.id !== id));
+      
+      return { anterior };
+    },
     onSuccess: () => {
       cliente.invalidateQueries({ queryKey: ["movimientos"] });
       cliente.invalidateQueries({ queryKey: ["cuentas"] });
       toast.success("Movimiento eliminado");
     },
-    onError: (error: any) => {
+    onError: (error: any, _variables, context) => {
+      if (context?.anterior) {
+        cliente.setQueryData(["movimientos", anio, mes], context.anterior);
+      }
       toast.error(error?.response?.data?.error || "No se pudo eliminar el movimiento");
     },
   });
