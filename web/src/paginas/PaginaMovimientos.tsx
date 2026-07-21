@@ -53,7 +53,7 @@ export default function PaginaMovimientos() {
     setConcepto(""); setCategoriaId(0); setCuentaId(""); setMonto("0"); setNotas("");
     setErrores({});
   }
-  }
+  
   function editar(m: Movimiento) {
     setEditando(m); setFecha(m.fecha.slice(0, 10)); setConcepto(m.concepto);
     setCategoriaId(m.categoriaId); setCuentaId(m.cuentaId ?? ""); setMonto(String(m.monto)); setNotas(m.notas ?? "");

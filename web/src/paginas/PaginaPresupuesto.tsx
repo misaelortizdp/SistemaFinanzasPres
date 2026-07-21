@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useConfirm } from "@/lib/useConfirm";
 import { Skeleton } from "@/components/ui/skeleton";
+import { obtenerMensajeError } from "@/lib/errorUtils";
 
 interface Linea {
   id: number; categoriaId: number; nombreCategoria?: string;
@@ -53,11 +54,16 @@ export default function PaginaPresupuesto() {
       
       return { anterior };
     },
-    onSuccess: () => cliente.invalidateQueries({ queryKey: ["presupuesto", anio, mes] }),
-    onError: (_error, _variables, context) => {
+    onSuccess: () => {
+      cliente.invalidateQueries({ queryKey: ["presupuesto", anio, mes] });
+      toast.success("Presupuesto actualizado");
+    },
+    onError: (error, _variables, context) => {
       if (context?.anterior) {
         cliente.setQueryData(["presupuesto", anio, mes], context.anterior);
       }
+      const mensaje = obtenerMensajeError(error, "No se pudo actualizar el presupuesto");
+      toast.error(mensaje);
     },
   });
 
@@ -68,7 +74,8 @@ export default function PaginaPresupuesto() {
       toast.success(`Copiadas ${datos?.copiadas ?? 0} categorías del mes anterior`);
     },
     onError: (error: any) => {
-      toast.error(error?.response?.data?.error || "No se pudo copiar el mes anterior");
+      const mensaje = obtenerMensajeError(error, "No se pudo copiar el mes anterior");
+      toast.error(mensaje);
     },
   });
 
