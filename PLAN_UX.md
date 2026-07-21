@@ -77,16 +77,16 @@ Mejorar la experiencia de usuario de la aplicación web de finanzas personales, 
 - [x] Mejorar BottomNav existente
 - [x] Pull-to-refresh en listas (no implementado - requiere librería adicional)
 
-### ⏳ LOTE 4: Manejo de Errores Mejorado
+### ✅ LOTE 4: Manejo de Errores Mejorado (COMPLETADO)
 **Prioridad**: CRÍTICA | **Fase**: 1.3
 **Objetivo**: Feedback claro y accionable
 
 **Tareas**:
-- [ ] Mensajes de error específicos por tipo
-- [ ] Implementar error boundaries
-- [ ] Validación inline en formularios
-- [ ] Mecanismos de reintento para API calls
-- [ ] Estados de error con acciones sugeridas
+- [x] Mensajes de error específicos por tipo
+- [x] Implementar error boundaries
+- [x] Validación inline en formularios
+- [x] Mecanismos de reintento para API calls
+- [x] Estados de error con acciones sugeridas
 
 ### ⏳ LOTE 5: Onboarding Básico
 **Prioridad**: ALTA | **Fase**: 1.4
@@ -291,10 +291,21 @@ Mejorar la experiencia de usuario de la aplicación web de finanzas personales, 
   - Inputs y selects con altura mínima de 44px
   - 7 archivos modificados (PaginaPanel, PaginaMovimientos, PaginaCuentas, PaginaCategorias, PaginaPresupuesto, BottomNav)
   - Commit: feat(responsive): mejoras responsive mobile-first con secciones colapsables y touch targets optimizados
+- ✅ **LOTE 4 COMPLETADO**: Manejo de Errores Mejorado
+  - Creado errorUtils.ts con utilidades para mensajes de error específicos por código HTTP
+  - Implementado ErrorBoundary para capturar errores de React
+  - Configuración de reintentos automáticos en React Query con backoff exponencial
+  - Validación inline en formularios (PaginaMovimientos, PaginaCuentas)
+  - Mensajes de error contextuales en todas las mutaciones
+  - 6 archivos modificados (App.tsx, main.tsx, errorUtils.ts, ErrorBoundary.tsx, PaginaMovimientos, PaginaCuentas, PaginaPresupuesto)
+  - 3 commits realizados
+  - Commit 1: feat(errores): añadir utilidades de error, error boundary y validación inline
+  - Commit 2: feat(errores): aplicar validación y mejor manejo de errores en PaginaCuentas
+  - Commit 3: feat(errores): completar LOTE 4 - aplicar mejoras a Presupuesto y corregir errores
 
 ---
 
 **Última actualización**: 2026-07-21  
-**Lote completado**: LOTE 3 ✅  
-**Lote actual**: LOTE 4 (Manejo de Errores Mejorado)  
-**Progreso general**: 3/10 lotes (30%)
+**Lote completado**: LOTE 4 ✅  
+**Lote actual**: LOTE 5 (Onboarding Básico)  
+**Progreso general**: 4/10 lotes (40%)
