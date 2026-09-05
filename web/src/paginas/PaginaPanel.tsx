@@ -6,7 +6,7 @@ import {
   PiggyBank, Shield, CreditCard, ChevronDown, ChevronUp,
 } from "lucide-react";
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell, Legend,
 } from "recharts";
 import { api } from "@/lib/api";
@@ -18,6 +18,19 @@ import { SkeletonDashboard } from "@/components/ui/skeleton";
 interface Movimiento { id: number; fecha: string; concepto: string; monto: number; nombreCategoria?: string }
 interface PatrimonioActual { totalActivos: number; totalPasivos: number; patrimonioNeto: number }
 interface TendenciaMes { anio: number; mes: number; ingresos: number; gastos: number }
+interface TendenciaMesDetalle {
+  anio: number; mes: number;
+  ingresos: number; gastos: number;
+  ingresoDisponible: number; ahorro: number;
+  tasaAhorroPct: number; flecha: string;
+}
+interface TendenciaDetalle {
+  meses: TendenciaMesDetalle[];
+  mejorMes?: string | null;
+  peorMes?: string | null;
+  promedioTasaAhorro: number;
+  promedioGastos: number;
+}
 interface GastoCategoria { nombre: string; monto: number; color?: string; icono?: string }
 interface Distribucion { necesidades: number; deseos: number; deuda: number; ahorro: number; totalIngresos: number; ingresoDisponible: number; diezmoMonto: number }
 interface Proyeccion { diasTranscurridos: number; diasTotales: number; gastoActual: number; gastoProyectado: number; tasaQuemaDiaria: number; presupuestoDiarioPermitido: number; ingresoDisponible: number }
@@ -45,6 +58,12 @@ function compacto(v: number) {
   if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
   if (v >= 1_000) return `${(v / 1_000).toFixed(0)}k`;
   return String(v);
+}
+
+function etiquetaMes(anioMes: string | null | undefined): string {
+  if (!anioMes) return "—";
+  const [a, m] = anioMes.split("-");
+  return `${NOMBRES_MES[parseInt(m) - 1]} ${a}`;
 }
 
 export default function PaginaPanel() {
@@ -82,6 +101,11 @@ export default function PaginaPanel() {
     queryFn: async () => (await api.get("/api/configuracion")).data,
   });
 
+  const { data: tendenciaDetalle } = useQuery<TendenciaDetalle>({
+    queryKey: ["panel-tendencias"],
+    queryFn: async () => (await api.get("/api/panel/tendencias")).data,
+  });
+
   const mesActualTendencia = resumen?.tendencia.find(t => t.anio === anio && t.mes === mes);
   const totalIngresos = mesActualTendencia?.ingresos ?? 0;
   const totalGastos = mesActualTendencia?.gastos ?? 0;
@@ -94,10 +118,11 @@ export default function PaginaPanel() {
   const tendenciaGastos = mesAnterior ? totalGastos - mesAnterior.gastos : 0;
   const tendenciaBalance = mesAnterior ? balance - (mesAnterior.ingresos - mesAnterior.gastos) : 0;
 
-  const datosBarras = resumen?.tendencia.map(t => ({
-    nombre: NOMBRES_MES[t.mes - 1].slice(0, 3),
-    Ingresos: t.ingresos,
-    Gastos: t.gastos,
+  const datosTendencia = tendenciaDetalle?.meses.map(m => ({
+    nombre: NOMBRES_MES[m.mes - 1].slice(0, 3),
+    Ingresos: m.ingresos,
+    Gastos: m.gastos,
+    Ahorro: m.ahorro,
   })) ?? [];
 
   const datosDona = (resumen?.gastosPorCategoria ?? []).map((g, i) => ({
@@ -263,50 +288,84 @@ export default function PaginaPanel() {
           <span>📊 Gráficas y análisis</span>
           {graficasAbierto ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         </button>
-        <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 ${graficasAbierto ? '' : 'hidden md:grid'}`}>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Ingresos vs Gastos — últimos 6 meses</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {datosBarras.every(d => d.Ingresos === 0 && d.Gastos === 0) ? (
-                <p className="text-sm text-muted-foreground py-8 text-center">Sin datos suficientes aún.</p>
-              ) : (
-                <ResponsiveContainer width="100%" height={220}>
-                  <BarChart data={datosBarras} barCategoryGap="30%">
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="nombre" tick={{ fontSize: 12 }} />
-                    <YAxis tickFormatter={compacto} tick={{ fontSize: 12 }} width={45} />
-                    <Tooltip formatter={(v) => formatoMoneda(Number(v ?? 0))} contentStyle={{ fontSize: 12, borderRadius: 8 }} />
-                    <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
-                    <Bar dataKey="Ingresos" fill="#10b981" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="Gastos" fill="#f43f5e" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              )}
-            </CardContent>
-          </Card>
+        <div className={graficasAbierto ? 'space-y-4' : 'hidden md:block md:space-y-4'}>
+          {tendenciaDetalle && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <Card>
+                <CardContent className="pt-4">
+                  <p className="text-xs text-muted-foreground">Promedio tasa ahorro</p>
+                  <p className={`text-lg font-bold ${tendenciaDetalle.promedioTasaAhorro >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                    {tendenciaDetalle.promedioTasaAhorro.toFixed(1)}%
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-4">
+                  <p className="text-xs text-muted-foreground">Promedio gasto mensual</p>
+                  <p className="text-lg font-bold">{formatoMoneda(tendenciaDetalle.promedioGastos)}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-4">
+                  <p className="text-xs text-muted-foreground">✅ Mejor mes</p>
+                  <p className="text-base font-bold text-emerald-600">{etiquetaMes(tendenciaDetalle.mejorMes)}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-4">
+                  <p className="text-xs text-muted-foreground">⚠ Mes más difícil</p>
+                  <p className="text-base font-bold text-red-600">{etiquetaMes(tendenciaDetalle.peorMes)}</p>
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Gastos por categoría — {NOMBRES_MES[mes - 1]}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {datosDona.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-8 text-center">No hay gastos registrados este mes.</p>
-              ) : (
-                <ResponsiveContainer width="100%" height={220}>
-                  <PieChart>
-                    <Pie data={datosDona} cx="50%" cy="50%" innerRadius={55} outerRadius={85} paddingAngle={2} dataKey="value">
-                      {datosDona.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-                    </Pie>
-                    <Tooltip formatter={(v) => formatoMoneda(Number(v ?? 0))} contentStyle={{ fontSize: 12, borderRadius: 8 }} />
-                    <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }} formatter={(value) => value.length > 18 ? value.slice(0, 18) + "…" : value} />
-                  </PieChart>
-                </ResponsiveContainer>
-              )}
-            </CardContent>
-          </Card>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Ingresos, Gastos y Ahorro — últimos 6 meses</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {datosTendencia.every(d => d.Ingresos === 0 && d.Gastos === 0) ? (
+                  <p className="text-sm text-muted-foreground py-8 text-center">Sin datos suficientes aún.</p>
+                ) : (
+                  <ResponsiveContainer width="100%" height={220}>
+                    <LineChart data={datosTendencia}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis dataKey="nombre" tick={{ fontSize: 12 }} />
+                      <YAxis tickFormatter={compacto} tick={{ fontSize: 12 }} width={45} />
+                      <Tooltip formatter={(v) => formatoMoneda(Number(v ?? 0))} contentStyle={{ fontSize: 12, borderRadius: 8 }} />
+                      <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
+                      <Line type="monotone" dataKey="Ingresos" stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} />
+                      <Line type="monotone" dataKey="Gastos" stroke="#f43f5e" strokeWidth={2} dot={{ r: 3 }} />
+                      <Line type="monotone" dataKey="Ahorro" stroke="#6366f1" strokeWidth={2} strokeDasharray="4 2" dot={{ r: 3 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Gastos por categoría — {NOMBRES_MES[mes - 1]}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {datosDona.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-8 text-center">No hay gastos registrados este mes.</p>
+                ) : (
+                  <ResponsiveContainer width="100%" height={220}>
+                    <PieChart>
+                      <Pie data={datosDona} cx="50%" cy="50%" innerRadius={55} outerRadius={85} paddingAngle={2} dataKey="value">
+                        {datosDona.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                      </Pie>
+                      <Tooltip formatter={(v) => formatoMoneda(Number(v ?? 0))} contentStyle={{ fontSize: 12, borderRadius: 8 }} />
+                      <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }} formatter={(value) => value.length > 18 ? value.slice(0, 18) + "…" : value} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
 

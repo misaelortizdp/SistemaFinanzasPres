@@ -3,7 +3,6 @@ import { NavLink, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Wallet, ArrowDownUp, PieChart,
   CreditCard, Target, Gem, Settings, LogOut, Menu, X, Tags,
-  LineChart,
 } from "lucide-react";
 import { usarAutenticacion } from "@/autenticacion/ContextoAutenticacion";
 import { cn } from "@/lib/utils";
@@ -18,7 +17,6 @@ interface ItemNav {
 
 const ITEMS: ItemNav[] = [
   { ruta: "/",              etiqueta: "Panel",         Icono: LayoutDashboard },
-  { ruta: "/tendencias",    etiqueta: "Tendencias",    Icono: LineChart },
   { ruta: "/movimientos",   etiqueta: "Movimientos",   Icono: ArrowDownUp },
   { ruta: "/presupuesto",   etiqueta: "Presupuesto",   Icono: PieChart },
   { ruta: "/cuentas",       etiqueta: "Cuentas",       Icono: Wallet },
