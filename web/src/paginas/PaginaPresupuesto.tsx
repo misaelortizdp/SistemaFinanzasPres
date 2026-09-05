@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, Copy } from "lucide-react";
+import { ChevronLeft, ChevronRight, Copy, Link2 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { formatoMoneda, mesActual, NOMBRES_MES, useCategorias } from "@/lib/hooks";
@@ -14,6 +14,7 @@ import { obtenerMensajeError } from "@/lib/errorUtils";
 interface Linea {
   id: number; categoriaId: number; nombreCategoria?: string;
   anio: number; mes: number; monto: number; ejecutado: number;
+  esAutomatico: boolean;
 }
 
 const PILARES = [
@@ -91,7 +92,12 @@ export default function PaginaPresupuesto() {
     .filter(c => c.tipo !== 4 && c.activa)
     .map(c => {
       const linea = lineas.find(l => l.categoriaId === c.id);
-      return { categoria: c, monto: linea?.monto ?? 0, ejecutado: linea?.ejecutado ?? 0 };
+      return {
+        categoria: c,
+        monto: linea?.monto ?? 0,
+        ejecutado: linea?.ejecutado ?? 0,
+        esAutomatico: linea?.esAutomatico ?? false,
+      };
     });
 
   const totalPresupuestado = filas.reduce((s, f) => s + f.monto, 0);
@@ -194,7 +200,7 @@ export default function PaginaPresupuesto() {
                 </CardHeader>
                 <CardContent className="px-4 pb-3">
                   <ul className="divide-y">
-                    {grupo.map(({ categoria, monto, ejecutado }) => {
+                    {grupo.map(({ categoria, monto, ejecutado, esAutomatico }) => {
                       const pct = monto > 0 ? Math.min(100, (ejecutado / monto) * 100) : 0;
                       const excedido = ejecutado > monto && monto > 0;
                       return (
@@ -209,16 +215,26 @@ export default function PaginaPresupuesto() {
                                 {formatoMoneda(ejecutado)}
                               </span>
                               <span className="text-muted-foreground text-xs">/</span>
-                              <Input
-                                type="number"
-                                step="1"
-                                className="w-28 h-8 text-right"
-                                defaultValue={monto}
-                                onBlur={(e) => {
-                                  const val = parseFloat(e.target.value) || 0;
-                                  if (val !== monto) guardar.mutate({ categoriaId: categoria.id, monto: val });
-                                }}
-                              />
+                              {esAutomatico ? (
+                                <span
+                                  className="w-28 h-8 flex items-center justify-end gap-1 text-sm font-medium text-muted-foreground"
+                                  title="Calculado desde Deudas: pago mínimo + abono extra"
+                                >
+                                  <Link2 className="w-3 h-3 shrink-0" />
+                                  {formatoMoneda(monto)}
+                                </span>
+                              ) : (
+                                <Input
+                                  type="number"
+                                  step="1"
+                                  className="w-28 h-8 text-right"
+                                  defaultValue={monto}
+                                  onBlur={(e) => {
+                                    const val = parseFloat(e.target.value) || 0;
+                                    if (val !== monto) guardar.mutate({ categoriaId: categoria.id, monto: val });
+                                  }}
+                                />
+                              )}
                             </div>
                           </div>
                           <div className="h-1 bg-muted rounded-full overflow-hidden">

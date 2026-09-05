@@ -25,8 +25,9 @@ public class DeudasController : ControllerBase
             {
                 Id = d.Id, Nombre = d.Nombre,
                 MontoOriginal = d.MontoOriginal, SaldoActual = d.SaldoActual,
-                TasaInteres = d.TasaInteres, PagoMinimo = d.PagoMinimo,
+                TasaInteres = d.TasaInteres, PagoMinimo = d.PagoMinimo, AbonoExtra = d.AbonoExtra,
                 DiaPago = d.DiaPago, Activa = d.Activa, Notas = d.Notas,
+                CategoriaId = d.CategoriaId,
             }).ToListAsync();
         return Ok(datos);
     }
@@ -35,21 +36,37 @@ public class DeudasController : ControllerBase
     public async Task<ActionResult<DeudaDto>> Crear([FromBody] DeudaDto dto)
     {
         var uid = User.ObtenerId();
+        var nombre = dto.Nombre.Trim();
+
+        // Cada deuda tiene su propia categoría de presupuesto (pilar Deuda), creada
+        // automáticamente — así el usuario no tiene que duplicar el alta a mano.
+        var categoria = new Categoria
+        {
+            UsuarioId = uid,
+            Nombre = nombre,
+            Tipo = TipoCategoria.Deuda,
+            Activa = dto.Activa,
+        };
+
         var d = new Deuda
         {
             UsuarioId = uid,
-            Nombre = dto.Nombre.Trim(),
+            Nombre = nombre,
             MontoOriginal = dto.MontoOriginal,
             SaldoActual = dto.SaldoActual == 0 ? dto.MontoOriginal : dto.SaldoActual,
             TasaInteres = dto.TasaInteres,
             PagoMinimo = dto.PagoMinimo,
+            AbonoExtra = dto.AbonoExtra,
             DiaPago = dto.DiaPago,
             Activa = dto.Activa,
             Notas = string.IsNullOrWhiteSpace(dto.Notas) ? null : dto.Notas.Trim(),
+            Categoria = categoria,
         };
+        _bd.Categorias.Add(categoria);
         _bd.Deudas.Add(d);
         await _bd.SaveChangesAsync();
         dto.Id = d.Id;
+        dto.CategoriaId = categoria.Id;
         return Ok(dto);
     }
 
@@ -59,11 +76,20 @@ public class DeudasController : ControllerBase
         var uid = User.ObtenerId();
         var d = await _bd.Deudas.FirstOrDefaultAsync(x => x.Id == id && x.UsuarioId == uid);
         if (d == null) return NotFound();
-        d.Nombre = dto.Nombre.Trim();
+
+        var nombreNuevo = dto.Nombre.Trim();
+        if (d.CategoriaId != null && d.Nombre != nombreNuevo)
+        {
+            var cat = await _bd.Categorias.FirstOrDefaultAsync(c => c.Id == d.CategoriaId && c.UsuarioId == uid);
+            if (cat != null) cat.Nombre = nombreNuevo;
+        }
+
+        d.Nombre = nombreNuevo;
         d.MontoOriginal = dto.MontoOriginal;
         d.SaldoActual = dto.SaldoActual;
         d.TasaInteres = dto.TasaInteres;
         d.PagoMinimo = dto.PagoMinimo;
+        d.AbonoExtra = dto.AbonoExtra;
         d.DiaPago = dto.DiaPago;
         d.Activa = dto.Activa;
         d.Notas = string.IsNullOrWhiteSpace(dto.Notas) ? null : dto.Notas.Trim();
@@ -77,6 +103,15 @@ public class DeudasController : ControllerBase
         var uid = User.ObtenerId();
         var d = await _bd.Deudas.FirstOrDefaultAsync(x => x.Id == id && x.UsuarioId == uid);
         if (d == null) return NotFound();
+
+        // La categoría se desactiva en vez de borrarse: preserva el histórico de
+        // movimientos ya registrados contra ella (igual que "desactivar" en Categorías).
+        if (d.CategoriaId != null)
+        {
+            var cat = await _bd.Categorias.FirstOrDefaultAsync(c => c.Id == d.CategoriaId && c.UsuarioId == uid);
+            if (cat != null) cat.Activa = false;
+        }
+
         _bd.Deudas.Remove(d);
         await _bd.SaveChangesAsync();
         return NoContent();

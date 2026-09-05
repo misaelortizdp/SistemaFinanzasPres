@@ -70,6 +70,7 @@ public class BaseDatosContexto : IdentityDbContext<Usuario>
         {
             e.HasIndex(d => d.UsuarioId);
             e.HasOne(d => d.Usuario).WithMany().HasForeignKey(d => d.UsuarioId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(d => d.Categoria).WithMany().HasForeignKey(d => d.CategoriaId).OnDelete(DeleteBehavior.SetNull);
         });
 
         b.Entity<PagoDeuda>(e =>

@@ -13,8 +13,8 @@ import { useConfirm } from "@/lib/useConfirm";
 interface Deuda {
   id: number; nombre: string;
   montoOriginal: number; saldoActual: number;
-  tasaInteres: number; pagoMinimo: number; diaPago: number;
-  activa: boolean; notas?: string | null;
+  tasaInteres: number; pagoMinimo: number; abonoExtra: number; diaPago: number;
+  activa: boolean; notas?: string | null; categoriaId?: number | null;
 }
 
 interface PagoDeuda {
@@ -39,6 +39,7 @@ export default function PaginaDeudas() {
   const [saldo, setSaldo] = useState("0");
   const [tasa, setTasa] = useState("0");
   const [pagoMin, setPagoMin] = useState("0");
+  const [abonoExtra, setAbonoExtra] = useState("0");
   const [diaPago, setDiaPago] = useState("1");
 
   const [verPagos, setVerPagos] = useState<Deuda | null>(null);
@@ -49,12 +50,13 @@ export default function PaginaDeudas() {
 
   function limpiar() {
     setEditando(null); setNombre(""); setOriginal("0"); setSaldo("0");
-    setTasa("0"); setPagoMin("0"); setDiaPago("1");
+    setTasa("0"); setPagoMin("0"); setAbonoExtra("0"); setDiaPago("1");
   }
   function editar(d: Deuda) {
     setEditando(d); setNombre(d.nombre); setOriginal(String(d.montoOriginal));
     setSaldo(String(d.saldoActual)); setTasa(String(d.tasaInteres));
-    setPagoMin(String(d.pagoMinimo)); setDiaPago(String(d.diaPago));
+    setPagoMin(String(d.pagoMinimo)); setAbonoExtra(String(d.abonoExtra));
+    setDiaPago(String(d.diaPago));
   }
 
   const guardar = useMutation({
@@ -64,6 +66,7 @@ export default function PaginaDeudas() {
         saldoActual: parseFloat(saldo) || 0,
         tasaInteres: parseFloat(tasa) || 0,
         pagoMinimo: parseFloat(pagoMin) || 0,
+        abonoExtra: parseFloat(abonoExtra) || 0,
         diaPago: parseInt(diaPago) || 1, activa: true,
       };
       if (editando) await api.put(`/api/deudas/${editando.id}`, { id: editando.id, ...cuerpo });
@@ -72,13 +75,19 @@ export default function PaginaDeudas() {
     onSuccess: () => {
       cliente.invalidateQueries({ queryKey: ["deudas"] });
       cliente.invalidateQueries({ queryKey: ["patrimonio-actual"] });
+      cliente.invalidateQueries({ queryKey: ["presupuesto"] });
+      cliente.invalidateQueries({ queryKey: ["categorias"] });
       limpiar();
     },
   });
 
   const eliminar = useMutation({
     mutationFn: async (id: number) => { await api.delete(`/api/deudas/${id}`); },
-    onSuccess: () => cliente.invalidateQueries({ queryKey: ["deudas"] }),
+    onSuccess: () => {
+      cliente.invalidateQueries({ queryKey: ["deudas"] });
+      cliente.invalidateQueries({ queryKey: ["presupuesto"] });
+      cliente.invalidateQueries({ queryKey: ["categorias"] });
+    },
   });
 
   const pagar = useMutation({
@@ -199,8 +208,15 @@ export default function PaginaDeudas() {
               <div className="space-y-1.5"><Label>Saldo actual</Label><Input type="number" step="0.01" value={saldo} onChange={(e) => setSaldo(e.target.value)} /></div>
               <div className="space-y-1.5"><Label>Tasa interés (% anual)</Label><Input type="number" step="0.01" value={tasa} onChange={(e) => setTasa(e.target.value)} /></div>
               <div className="space-y-1.5"><Label>Pago mínimo</Label><Input type="number" step="0.01" value={pagoMin} onChange={(e) => setPagoMin(e.target.value)} /></div>
+              <div className="space-y-1.5">
+                <Label>Abono extra</Label>
+                <Input type="number" step="0.01" value={abonoExtra} onChange={(e) => setAbonoExtra(e.target.value)} />
+              </div>
               <div className="space-y-1.5"><Label>Día de pago</Label><Input type="number" min="1" max="28" value={diaPago} onChange={(e) => setDiaPago(e.target.value)} /></div>
             </div>
+            <p className="text-xs text-muted-foreground -mt-1">
+              💡 Pago mínimo + abono extra es lo que se presupuesta cada mes para esta deuda — se refleja solo en Presupuesto, no hace falta cargarlo ahí a mano.
+            </p>
             <div className="flex gap-2">
               <Button type="submit" disabled={guardar.isPending}>
                 <Plus className="w-4 h-4 mr-2" />{editando ? "Guardar" : "Agregar"}
@@ -228,6 +244,12 @@ export default function PaginaDeudas() {
                        <p className="text-xs text-muted-foreground">
                          {formatoMoneda(d.saldoActual)} de {formatoMoneda(d.montoOriginal)} · {d.tasaInteres}% anual · día {d.diaPago}
                        </p>
+                       {d.activa && (
+                         <p className="text-xs text-muted-foreground">
+                           📋 Presupuesto mensual: <span className="font-medium text-foreground">{formatoMoneda(d.pagoMinimo + d.abonoExtra)}</span>
+                           {d.abonoExtra > 0 && ` (${formatoMoneda(d.pagoMinimo)} mínimo + ${formatoMoneda(d.abonoExtra)} extra)`}
+                         </p>
+                       )}
                      </div>
                      <div className="flex gap-1 flex-wrap justify-end">
                        <Button size="sm" variant="outline" onClick={() => pagarRapido(d)} disabled={!d.activa}>
