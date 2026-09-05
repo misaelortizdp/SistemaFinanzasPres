@@ -47,6 +47,47 @@ public class KpiService
         return new FondoEmergenciaInfo(gastosFijos, cfg.FondoEmergenciaMeses, metaFondo, fondoBalance, avance, status);
     }
 
+    // Motor de sugerencias accionables: 4 reglas fijas (la 5ta del plan — proyección de fin
+    // de mes — ya vive en BudgetSnapshot.Projection.Headline, mostrada aparte en Dashboard).
+    public async Task<List<string>> GetSugerenciasAsync(int year, int month)
+    {
+        var snap = await _budget.GetSnapshotAsync(year, month);
+        var sugerencias = new List<string>();
+        if (snap.IngresoDisponible <= 0) return sugerencias;
+
+        var balance = snap.IngresoDisponible - snap.TotalSpent;
+        if (balance < 0)
+            sugerencias.Add($"Vas {Math.Abs(balance):C0} en números rojos este mes.");
+
+        foreach (var pilar in snap.Pillars)
+        {
+            if (pilar.Pillar == Pillar.Ahorro) continue; // meta mínima, regla aparte abajo
+            if (pilar.MetaAmount > 0 && pilar.Spent > pilar.MetaAmount)
+                sugerencias.Add($"Vas {(pilar.Spent - pilar.MetaAmount):C0} sobre tu meta en {pilar.Pillar.Display()}.");
+        }
+
+        var ahorro = snap.Pillars.First(p => p.Pillar == Pillar.Ahorro);
+        if (ahorro.MetaAmount > 0 && ahorro.Spent < ahorro.MetaAmount)
+            sugerencias.Add($"Te faltan {(ahorro.MetaAmount - ahorro.Spent):C0} este mes para tu meta de ahorro.");
+
+        // Gastos hormiga: el pilar Deseos se está ejecutando más rápido de lo que avanza
+        // el mes (en vez de un umbral fijo en pesos, que no generaliza entre usuarios).
+        var proj = snap.Projection;
+        if (proj.IsCurrentMonth && proj.DaysElapsed >= 5)
+        {
+            var deseos = snap.Pillars.First(p => p.Pillar == Pillar.Deseo);
+            if (deseos.MetaAmount > 0)
+            {
+                var pctDeseosEjecutado = deseos.Spent / deseos.MetaAmount;
+                var pctMesTranscurrido = (decimal)proj.DaysElapsed / proj.DaysInMonth;
+                if (pctDeseosEjecutado > pctMesTranscurrido + 0.15m)
+                    sugerencias.Add($"Ya usaste el {pctDeseosEjecutado:P0} de tu presupuesto de Deseos y solo va el {pctMesTranscurrido:P0} del mes — cuidado con los gastos hormiga.");
+            }
+        }
+
+        return sugerencias;
+    }
+
     public async Task<(int Dias, int DiasDelMes)> GetDiasConRegistroAsync(int year, int month)
     {
         var start = new DateTime(year, month, 1);

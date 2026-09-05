@@ -113,14 +113,17 @@ public class BudgetService
         var diezmoMonto = ingresoTotal * config.DiezmoPct;
         var ingresoDisponible = ingresoTotal - diezmoMonto;
 
-        PillarSummary BuildPillar(Pillar p, decimal metaPct)
+        // Para Necesidad/Deseo/Deuda la meta es un tope a no pasar (menos es mejor); para
+        // Ahorro es un mínimo a alcanzar (más es mejor) — el status se invierte para esa.
+        PillarSummary BuildPillar(Pillar p, decimal metaPct, bool metaMinima = false)
         {
             var items = rows.Where(r => r.Pillar == p).ToList();
             var b = items.Sum(x => x.Budgeted);
             var s = items.Sum(x => x.Spent);
             var pctBase = ingresoDisponible > 0 ? s / ingresoDisponible : 0m;
             var meta = ingresoDisponible * metaPct;
-            string status = pctBase <= metaPct ? "✅ Dentro meta" : "⚠️ Sobre meta";
+            var bien = metaMinima ? pctBase >= metaPct : pctBase <= metaPct;
+            string status = bien ? "✅ Dentro meta" : metaMinima ? "⚠️ Bajo meta" : "⚠️ Sobre meta";
             return new PillarSummary(p, b, s, b - s, pctBase, metaPct, meta, status);
         }
 
@@ -129,7 +132,7 @@ public class BudgetService
             BuildPillar(Pillar.Necesidad,   config.MetaNecesidadesPct),
             BuildPillar(Pillar.Deseo,       config.MetaDeseosPct),
             BuildPillar(Pillar.Deuda,       config.MetaDeudaPct),
-            BuildPillar(Pillar.Ahorro,      config.MetaAhorroPct),
+            BuildPillar(Pillar.Ahorro,      config.MetaAhorroPct, metaMinima: true),
         };
 
         var totalB = rows.Sum(r => r.Budgeted);

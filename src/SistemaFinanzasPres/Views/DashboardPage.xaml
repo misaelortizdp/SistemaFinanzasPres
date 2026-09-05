@@ -24,6 +24,19 @@
                 <Button Grid.Column="2" Text="▶" Command="{Binding NextMonthCommand}" WidthRequest="48" />
             </Grid>
 
+            <Border Style="{StaticResource Card}" BackgroundColor="#FFFBEB" IsVisible="{Binding HasSugerencias}">
+                <VerticalStackLayout Spacing="6">
+                    <Label Text="💡 Sugerencias" Style="{StaticResource H2}" />
+                    <CollectionView ItemsSource="{Binding Sugerencias}" SelectionMode="None">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="x:String">
+                                <Label Text="{Binding .}" Style="{StaticResource Body}" Margin="0,3" />
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </VerticalStackLayout>
+            </Border>
+
             <Border Style="{StaticResource Card}">
                 <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="6">
                     <Label Grid.Row="0" Grid.Column="0" Text="💰 Ingreso" Style="{StaticResource Muted}" />

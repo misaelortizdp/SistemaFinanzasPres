@@ -58,8 +58,11 @@ public partial class DashboardViewModel : BaseViewModel
     [ObservableProperty] private string promedioAhorro = "0%";
     [ObservableProperty] private string promedioGasto = "$0";
 
+    [ObservableProperty] private bool hasSugerencias;
+
     public ObservableCollection<PillarRow> Pillars { get; } = new();
     public ObservableCollection<CategoryRow> Categories { get; } = new();
+    public ObservableCollection<string> Sugerencias { get; } = new();
 
     [RelayCommand]
     private async Task LoadAsync()
@@ -141,6 +144,11 @@ public partial class DashboardViewModel : BaseViewModel
             PeorMes = trend.PeorMes;
             PromedioAhorro = trend.PromedioAhorro;
             PromedioGasto = trend.PromedioGasto;
+
+            var sugerencias = await _kpi.GetSugerenciasAsync(_month.Year, _month.Month);
+            Sugerencias.Clear();
+            foreach (var s in sugerencias) Sugerencias.Add(s);
+            HasSugerencias = sugerencias.Count > 0;
         }
         finally { IsBusy = false; }
     }
