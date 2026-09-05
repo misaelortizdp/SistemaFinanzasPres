@@ -55,6 +55,55 @@
                 </VerticalStackLayout>
             </Border>
 
+            <Border Style="{StaticResource Card}">
+                <VerticalStackLayout Spacing="8">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label Grid.Column="0" Text="🏦 Fondo de emergencia" Style="{StaticResource Muted}" />
+                        <Label Grid.Column="1" Text="{Binding StatusFondo}" FontAttributes="Bold"
+                               TextColor="{Binding StatusFondo, Converter={StaticResource StatusColor}}" />
+                    </Grid>
+                    <ProgressBar Progress="{Binding AvanceFondoProgress}" ProgressColor="#10B981" />
+                    <Label Style="{StaticResource Muted}">
+                        <Label.Text>
+                            <MultiBinding StringFormat="Acumulado {0} de {1} ({2}, {3} meses de gastos fijos)">
+                                <Binding Path="AcumuladoFondo" />
+                                <Binding Path="MetaFondo" />
+                                <Binding Path="AvanceFondo" />
+                                <Binding Path="MesesFondo" />
+                            </MultiBinding>
+                        </Label.Text>
+                    </Label>
+                    <Label Text="{Binding DiasConRegistroLabel, StringFormat='📅 Días con registro este mes: {0}'}" Style="{StaticResource Muted}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{StaticResource Card}" IsVisible="{Binding ShowDeudas}">
+                <Grid ColumnDefinitions="*,Auto">
+                    <Label Grid.Column="0" Text="💳 Deuda total activa" Style="{StaticResource Muted}" VerticalOptions="Center" />
+                    <Label Grid.Column="1" FontAttributes="Bold" TextColor="#EF4444" VerticalOptions="Center">
+                        <Label.Text>
+                            <MultiBinding StringFormat="{}{0} ({1} activas)">
+                                <Binding Path="TotalDeudas" />
+                                <Binding Path="DeudasActivas" />
+                            </MultiBinding>
+                        </Label.Text>
+                    </Label>
+                </Grid>
+            </Border>
+
+            <Label Text="📈 Resumen — últimos 6 meses" Style="{StaticResource H2}" Margin="0,8,0,0" />
+            <Border Style="{StaticResource Card}">
+                <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="6" ColumnSpacing="12">
+                    <Label Grid.Row="0" Grid.Column="0" Text="Mejor mes (neto)" Style="{StaticResource Muted}" />
+                    <Label Grid.Row="0" Grid.Column="1" Text="Peor mes (neto)" Style="{StaticResource Muted}" />
+                    <Label Grid.Row="1" Grid.Column="0" Text="{Binding MejorMes}" Style="{StaticResource Body}" FontAttributes="Bold" TextColor="#10B981" />
+                    <Label Grid.Row="1" Grid.Column="1" Text="{Binding PeorMes}" Style="{StaticResource Body}" FontAttributes="Bold" TextColor="#EF4444" />
+                    <Label Grid.Row="2" Grid.Column="0" Text="Tasa ahorro prom." Style="{StaticResource Muted}" />
+                    <Label Grid.Row="2" Grid.Column="1" Text="Gasto prom./mes" Style="{StaticResource Muted}" />
+                    <Label Grid.Row="3" Grid.Column="0" Text="{Binding PromedioAhorro}" Style="{StaticResource Body}" FontAttributes="Bold" />
+                    <Label Grid.Row="3" Grid.Column="1" Text="{Binding PromedioGasto}" Style="{StaticResource Body}" FontAttributes="Bold" />
+                </Grid>
+            </Border>
 
             <Label Text="📊 Análisis 50/30/20" Style="{StaticResource H2}" Margin="0,8,0,0" />
             <CollectionView ItemsSource="{Binding Pillars}">

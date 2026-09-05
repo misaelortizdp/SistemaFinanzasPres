@@ -11,11 +11,15 @@ public partial class DashboardViewModel : BaseViewModel
 {
     private readonly BudgetService _budget;
     private readonly MonthService _month;
+    private readonly KpiService _kpi;
+    private readonly DebtService _debts;
 
-    public DashboardViewModel(BudgetService budget, MonthService month)
+    public DashboardViewModel(BudgetService budget, MonthService month, KpiService kpi, DebtService debts)
     {
         _budget = budget;
         _month = month;
+        _kpi = kpi;
+        _debts = debts;
         _month.Changed += async (_, __) => await LoadAsync();
         Title = "Dashboard";
     }
@@ -35,6 +39,24 @@ public partial class DashboardViewModel : BaseViewModel
     [ObservableProperty] private string burnDaily = "$0";
     [ObservableProperty] private string daysRemainingLabel = string.Empty;
     [ObservableProperty] private Color projectionColor = Colors.Gray;
+
+    [ObservableProperty] private string metaFondo = "$0";
+    [ObservableProperty] private string acumuladoFondo = "$0";
+    [ObservableProperty] private string avanceFondo = "0%";
+    [ObservableProperty] private double avanceFondoProgress;
+    [ObservableProperty] private string statusFondo = "—";
+    [ObservableProperty] private int mesesFondo;
+
+    [ObservableProperty] private bool showDeudas;
+    [ObservableProperty] private string totalDeudas = "$0";
+    [ObservableProperty] private int deudasActivas;
+
+    [ObservableProperty] private string diasConRegistroLabel = string.Empty;
+
+    [ObservableProperty] private string mejorMes = "—";
+    [ObservableProperty] private string peorMes = "—";
+    [ObservableProperty] private string promedioAhorro = "0%";
+    [ObservableProperty] private string promedioGasto = "$0";
 
     public ObservableCollection<PillarRow> Pillars { get; } = new();
     public ObservableCollection<CategoryRow> Categories { get; } = new();
@@ -97,6 +119,28 @@ public partial class DashboardViewModel : BaseViewModel
                     progress,
                     c.Percent.ToString("P0")));
             }
+
+            var fondo = await _kpi.GetFondoEmergenciaAsync(_month.Year, _month.Month);
+            MetaFondo = fondo.Meta.ToString("C0");
+            MesesFondo = fondo.Meses;
+            AcumuladoFondo = fondo.Acumulado.ToString("C0");
+            AvanceFondo = fondo.Avance.ToString("P1");
+            AvanceFondoProgress = (double)Math.Min(1m, fondo.Avance);
+            StatusFondo = fondo.Status;
+
+            var (dias, diasDelMes) = await _kpi.GetDiasConRegistroAsync(_month.Year, _month.Month);
+            DiasConRegistroLabel = $"{dias} de {diasDelMes} días";
+
+            var overview = await _debts.GetOverviewAsync();
+            ShowDeudas = overview.ActiveCount > 0;
+            TotalDeudas = overview.TotalBalance.ToString("C0");
+            DeudasActivas = overview.ActiveCount;
+
+            var trend = await _kpi.GetTrendSummaryAsync();
+            MejorMes = trend.MejorMes;
+            PeorMes = trend.PeorMes;
+            PromedioAhorro = trend.PromedioAhorro;
+            PromedioGasto = trend.PromedioGasto;
         }
         finally { IsBusy = false; }
     }
