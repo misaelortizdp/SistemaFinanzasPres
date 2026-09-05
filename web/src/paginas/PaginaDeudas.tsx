@@ -1,6 +1,6 @@
 import { FormEvent, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Pencil, Trash2, Plus, DollarSign, History, BarChart2, X } from "lucide-react";
+import { Pencil, Trash2, Plus, DollarSign, History, X } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { formatoMoneda, formatoFecha } from "@/lib/hooks";
@@ -15,15 +15,13 @@ interface Deuda {
   montoOriginal: number; saldoActual: number;
   tasaInteres: number; pagoMinimo: number; abonoExtra: number; diaPago: number;
   activa: boolean; notas?: string | null; categoriaId?: number | null;
+  mesesParaLiquidar: number | null; prioridadAvalancha: number | null;
 }
 
 interface PagoDeuda {
   id: number; deudaId: number; fecha: string;
   monto: number; porcionInteres: number; porcionCapital: number; notas?: string | null;
 }
-
-interface SimItem { nombre: string; saldoActual: number; tasaInteres: number; pagoMinimo: number; mesesParaPagar: number; interesTotal: number }
-interface SimResult { estrategia: string; mesesTotales: number; interesTotalPagado: number; deudas: SimItem[] }
 
 export default function PaginaDeudas() {
   const cliente = useQueryClient();
@@ -43,10 +41,6 @@ export default function PaginaDeudas() {
   const [diaPago, setDiaPago] = useState("1");
 
   const [verPagos, setVerPagos] = useState<Deuda | null>(null);
-  const [verSim, setVerSim] = useState(false);
-  const [estrategia, setEstrategia] = useState("Avalancha");
-  const [pagoExtra, setPagoExtra] = useState("0");
-  const [simResult, setSimResult] = useState<SimResult | null>(null);
 
   function limpiar() {
     setEditando(null); setNombre(""); setOriginal("0"); setSaldo("0");
@@ -100,14 +94,6 @@ export default function PaginaDeudas() {
     },
   });
 
-  const simular = useMutation({
-    mutationFn: async () => {
-      const res = await api.post<SimResult>("/api/deudas/simular", { estrategia, pagoExtraMensual: parseFloat(pagoExtra) || 0 });
-      return res.data;
-    },
-    onSuccess: (data) => setSimResult(data),
-  });
-
   const { data: pagos = [] } = useQuery<PagoDeuda[]>({
     queryKey: ["pagos-deuda", verPagos?.id],
     queryFn: async () => (await api.get<PagoDeuda[]>(`/api/deudas/${verPagos!.id}/pagos`)).data,
@@ -137,6 +123,8 @@ export default function PaginaDeudas() {
   const tasaPonderada = activas.length > 0 && totalDeuda > 0
     ? activas.reduce((s, d) => s + d.tasaInteres * d.saldoActual, 0) / totalDeuda
     : 0;
+  const mesesComputables = activas.map(d => d.mesesParaLiquidar).filter((m): m is number => m != null);
+  const mesesLibertad = mesesComputables.length > 0 ? Math.max(...mesesComputables) : null;
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -147,55 +135,13 @@ export default function PaginaDeudas() {
 
       {/* Resumen */}
       {activas.length > 0 && (
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Deuda total</p><p className="text-lg font-bold text-red-600">{formatoMoneda(totalDeuda)}</p></CardContent></Card>
           <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Pago mínimo total</p><p className="text-lg font-bold">{formatoMoneda(totalPagoMin)}/mes</p></CardContent></Card>
           <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Tasa promedio ponderada</p><p className="text-lg font-bold">{tasaPonderada.toFixed(1)}%</p></CardContent></Card>
+          <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Libre de deudas en</p><p className="text-lg font-bold">{mesesLibertad != null ? `${mesesLibertad} meses` : "—"}</p></CardContent></Card>
         </div>
       )}
-
-      {/* Simulador */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-base flex items-center gap-2"><BarChart2 className="w-4 h-4" />Simulador de pago</CardTitle>
-          <Button size="sm" variant="ghost" onClick={() => setVerSim(!verSim)}>{verSim ? "Ocultar" : "Abrir"}</Button>
-        </CardHeader>
-        {verSim && (
-          <CardContent className="space-y-4">
-            <div className="flex flex-wrap gap-3 items-end">
-              <div className="space-y-1">
-                <Label>Estrategia</Label>
-                <select value={estrategia} onChange={(e) => setEstrategia(e.target.value)}
-                  className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm">
-                  <option value="Avalancha">Avalancha (mayor interés primero)</option>
-                  <option value="Bola de nieve">Bola de nieve (menor saldo primero)</option>
-                </select>
-              </div>
-              <div className="space-y-1">
-                <Label>Pago extra mensual</Label>
-                <Input type="number" step="100" className="w-36" value={pagoExtra} onChange={(e) => setPagoExtra(e.target.value)} />
-              </div>
-              <Button onClick={() => simular.mutate()} disabled={simular.isPending}>Simular</Button>
-            </div>
-            {simResult && (
-              <div className="mt-2 space-y-3">
-                <div className="flex gap-4 text-sm">
-                  <p>⏱ <span className="font-semibold">{simResult.mesesTotales} meses</span> para saldar todo</p>
-                  <p>💸 Interés total: <span className="font-semibold text-red-600">{formatoMoneda(simResult.interesTotalPagado)}</span></p>
-                </div>
-                <ul className="divide-y text-sm">
-                  {simResult.deudas.map((d, i) => (
-                    <li key={i} className="py-1.5 flex justify-between">
-                      <span>{d.nombre}</span>
-                      <span className="text-muted-foreground">{d.mesesParaPagar} meses · interés: {formatoMoneda(d.interesTotal)}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </CardContent>
-        )}
-      </Card>
 
       {/* Formulario */}
       <Card>
@@ -248,6 +194,14 @@ export default function PaginaDeudas() {
                          <p className="text-xs text-muted-foreground">
                            📋 Presupuesto mensual: <span className="font-medium text-foreground">{formatoMoneda(d.pagoMinimo + d.abonoExtra)}</span>
                            {d.abonoExtra > 0 && ` (${formatoMoneda(d.pagoMinimo)} mínimo + ${formatoMoneda(d.abonoExtra)} extra)`}
+                         </p>
+                       )}
+                       {d.activa && d.prioridadAvalancha != null && (
+                         <p className={d.mesesParaLiquidar != null ? "text-xs text-muted-foreground" : "text-xs text-amber-600"}>
+                           🎯 Prioridad #{d.prioridadAvalancha}
+                           {d.mesesParaLiquidar != null
+                             ? ` · ${d.mesesParaLiquidar} meses para liquidar`
+                             : " · con el pago actual no baja — sube el pago mínimo o el abono extra"}
                          </p>
                        )}
                      </div>

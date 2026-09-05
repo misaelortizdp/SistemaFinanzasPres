@@ -18,18 +18,48 @@ public class DeudasController : ControllerBase
     public async Task<ActionResult<IEnumerable<DeudaDto>>> Listar()
     {
         var uid = User.ObtenerId();
-        var datos = await _bd.Deudas.AsNoTracking()
+        var deudas = await _bd.Deudas.AsNoTracking()
             .Where(d => d.UsuarioId == uid)
             .OrderByDescending(d => d.Activa).ThenByDescending(d => d.SaldoActual)
-            .Select(d => new DeudaDto
-            {
-                Id = d.Id, Nombre = d.Nombre,
-                MontoOriginal = d.MontoOriginal, SaldoActual = d.SaldoActual,
-                TasaInteres = d.TasaInteres, PagoMinimo = d.PagoMinimo, AbonoExtra = d.AbonoExtra,
-                DiaPago = d.DiaPago, Activa = d.Activa, Notas = d.Notas,
-                CategoriaId = d.CategoriaId,
-            }).ToListAsync();
+            .ToListAsync();
+
+        // Prioridad avalancha: 1 = mayor tasa de interés, solo entre las que aún tienen saldo.
+        var prioridades = deudas
+            .Where(d => d.Activa && d.SaldoActual > 0)
+            .OrderByDescending(d => d.TasaInteres)
+            .Select((d, i) => (d.Id, Prioridad: i + 1))
+            .ToDictionary(x => x.Id, x => x.Prioridad);
+
+        var datos = deudas.Select(d => new DeudaDto
+        {
+            Id = d.Id, Nombre = d.Nombre,
+            MontoOriginal = d.MontoOriginal, SaldoActual = d.SaldoActual,
+            TasaInteres = d.TasaInteres, PagoMinimo = d.PagoMinimo, AbonoExtra = d.AbonoExtra,
+            DiaPago = d.DiaPago, Activa = d.Activa, Notas = d.Notas,
+            CategoriaId = d.CategoriaId,
+            MesesParaLiquidar = CalcularMesesParaLiquidar(d),
+            PrioridadAvalancha = prioridades.TryGetValue(d.Id, out var p) ? p : null,
+        }).ToList();
         return Ok(datos);
+    }
+
+    // Fórmula de amortización estándar (la misma que usa el Excel de referencia): con un pago
+    // mensual fijo, cuántos meses hacen falta para llevar el saldo a 0. Null cuando el pago no
+    // alcanza ni para cubrir el interés del mes — con ese pago la deuda nunca baja.
+    private static int? CalcularMesesParaLiquidar(Deuda d)
+    {
+        if (d.SaldoActual <= 0) return 0;
+        var pago = d.PagoMinimo + d.AbonoExtra;
+        if (pago <= 0) return null;
+
+        var tasaMensual = d.TasaInteres / 100m / 12m;
+        if (tasaMensual == 0) return (int)Math.Ceiling(d.SaldoActual / pago);
+
+        var interesMensual = d.SaldoActual * tasaMensual;
+        if (pago <= interesMensual) return null;
+
+        var meses = -Math.Log(1 - (double)(interesMensual / pago)) / Math.Log(1 + (double)tasaMensual);
+        return (int)Math.Ceiling(meses);
     }
 
     [HttpPost]
@@ -178,84 +208,5 @@ public class DeudasController : ControllerBase
         _bd.PagosDeuda.Remove(p);
         await _bd.SaveChangesAsync();
         return NoContent();
-    }
-
-    [HttpPost("simular")]
-    public async Task<ActionResult<SimulacionDeudaResultDto>> Simular([FromBody] SimulacionDeudaRequestDto req)
-    {
-        var uid = User.ObtenerId();
-        var deudas = await _bd.Deudas.AsNoTracking()
-            .Where(d => d.UsuarioId == uid && d.Activa && d.SaldoActual > 0)
-            .ToListAsync();
-
-        if (!deudas.Any())
-            return Ok(new SimulacionDeudaResultDto { Estrategia = req.Estrategia });
-
-        // Ordenar según estrategia
-        var ordenadas = req.Estrategia.ToLower() == "bola de nieve"
-            ? deudas.OrderBy(d => d.SaldoActual).ToList()
-            : deudas.OrderByDescending(d => d.TasaInteres).ToList();   // Avalancha (default)
-
-        var saldos = ordenadas.Select(d => d.SaldoActual).ToArray();
-        var interesMensual = ordenadas.Select(d => d.TasaInteres / 100m / 12m).ToArray();
-        var pagosMin = ordenadas.Select(d => d.PagoMinimo).ToArray();
-        var interesAcumulado = new decimal[ordenadas.Count];
-        var mesesPorDeuda = new int[ordenadas.Count];
-
-        var pagoExtraDisponible = req.PagoExtraMensual;
-        var mes = 0;
-        var maxMeses = 600;
-
-        while (saldos.Any(s => s > 0) && mes < maxMeses)
-        {
-            mes++;
-            // Pago extra va a la primera deuda con saldo (ya ordenadas)
-            var extraRestante = pagoExtraDisponible;
-
-            for (int i = 0; i < ordenadas.Count; i++)
-            {
-                if (saldos[i] <= 0) continue;
-
-                var interes = Math.Round(saldos[i] * interesMensual[i], 2);
-                interesAcumulado[i] += interes;
-                saldos[i] += interes;
-
-                var pago = pagosMin[i];
-                // Aplicar extra a la primera deuda activa (estrategia snowball/avalanche)
-                if (extraRestante > 0)
-                {
-                    pago += extraRestante;
-                    extraRestante = 0;
-                }
-                // Liberar pago mínimo de deudas ya pagadas para siguiente
-                if (pago > saldos[i]) pago = saldos[i];
-                saldos[i] = Math.Max(0, saldos[i] - pago);
-                mesesPorDeuda[i] = mes;
-            }
-
-            // Redirigir pagos mínimos de deudas liquidadas a las restantes
-            for (int i = 0; i < ordenadas.Count - 1; i++)
-            {
-                if (saldos[i] <= 0) extraRestante += pagosMin[i];
-            }
-        }
-
-        var items = ordenadas.Select((d, i) => new SimulacionDeudaItemDto
-        {
-            Nombre = d.Nombre,
-            SaldoActual = d.SaldoActual,
-            TasaInteres = d.TasaInteres,
-            PagoMinimo = d.PagoMinimo,
-            MesesParaPagar = mesesPorDeuda[i],
-            InteresTotal = Math.Round(interesAcumulado[i], 2),
-        }).ToList();
-
-        return Ok(new SimulacionDeudaResultDto
-        {
-            Estrategia = req.Estrategia,
-            MesesTotales = mes,
-            InteresTotalPagado = Math.Round(interesAcumulado.Sum(), 2),
-            Deudas = items,
-        });
     }
 }

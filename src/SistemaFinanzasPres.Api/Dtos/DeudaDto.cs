@@ -22,6 +22,10 @@ public class DeudaDto
 
     // Informativo — la categoría se gestiona sola, el cliente no la envía.
     public int? CategoriaId { get; set; }
+
+    // Calculados en Listar() — el cliente no los envía al crear/editar.
+    public int? MesesParaLiquidar { get; set; }
+    public int? PrioridadAvalancha { get; set; }
 }
 
 public class PagoDeudaDto
