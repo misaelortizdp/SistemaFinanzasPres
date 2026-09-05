@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useCallback, useState } from "react"
 import { ConfirmDialog } from "@/components/ui/dialog"
 
 interface UseConfirmOptions {
@@ -41,7 +41,7 @@ export function useConfirm() {
     setIsOpen(false)
   }
 
-  const ConfirmDialogComponent = () => (
+  const ConfirmDialogComponent = useCallback(() => (
     <ConfirmDialog
       open={isOpen}
       onOpenChange={(open) => {
@@ -54,7 +54,7 @@ export function useConfirm() {
       variant={options.variant}
       onConfirm={handleConfirm}
     />
-  )
+  ), [isOpen, options, resolver])
 
   return { confirm, ConfirmDialog: ConfirmDialogComponent }
 }
