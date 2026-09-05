@@ -10,11 +10,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useConfirm } from "@/lib/useConfirm";
 import { Skeleton } from "@/components/ui/skeleton";
 
-type TipoCategoria = 1 | 2 | 3 | 4;
+type TipoCategoria = 1 | 2 | 3 | 4 | 5;
 
 const PILARES: { tipo: TipoCategoria; label: string; icono: string; color: string; borde: string }[] = [
   { tipo: 1, label: "Necesidades", icono: "🏠", color: "text-red-700 dark:text-red-400",   borde: "border-red-200 dark:border-red-800" },
   { tipo: 2, label: "Deseos",      icono: "🎮", color: "text-purple-700 dark:text-purple-400", borde: "border-purple-200 dark:border-purple-800" },
+  { tipo: 5, label: "Deuda",       icono: "💳", color: "text-orange-700 dark:text-orange-400", borde: "border-orange-200 dark:border-orange-800" },
   { tipo: 3, label: "Ahorro",      icono: "💰", color: "text-emerald-700 dark:text-emerald-400", borde: "border-emerald-200 dark:border-emerald-800" },
   { tipo: 4, label: "Ingresos",    icono: "💼", color: "text-blue-700 dark:text-blue-400",  borde: "border-blue-200 dark:border-blue-800" },
 ];
@@ -173,6 +174,7 @@ export default function PaginaCategorias() {
                 >
                   <option value={1}>Necesidad</option>
                   <option value={2}>Deseo</option>
+                  <option value={5}>Deuda</option>
                   <option value={3}>Ahorro</option>
                   <option value={4}>Ingreso</option>
                 </select>

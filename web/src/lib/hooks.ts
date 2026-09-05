@@ -4,7 +4,7 @@ import { api } from "./api";
 export interface Categoria {
   id: number;
   nombre: string;
-  tipo: 1 | 2 | 3 | 4;
+  tipo: 1 | 2 | 3 | 4 | 5;
   color?: string | null;
   icono?: string | null;
   orden: number;

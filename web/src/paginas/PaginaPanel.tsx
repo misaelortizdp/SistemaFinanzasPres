@@ -19,7 +19,7 @@ interface Movimiento { id: number; fecha: string; concepto: string; monto: numbe
 interface PatrimonioActual { totalActivos: number; totalPasivos: number; patrimonioNeto: number }
 interface TendenciaMes { anio: number; mes: number; ingresos: number; gastos: number }
 interface GastoCategoria { nombre: string; monto: number; color?: string; icono?: string }
-interface Distribucion { necesidades: number; deseos: number; ahorro: number; totalIngresos: number; ingresoDisponible: number; diezmoMonto: number }
+interface Distribucion { necesidades: number; deseos: number; deuda: number; ahorro: number; totalIngresos: number; ingresoDisponible: number; diezmoMonto: number }
 interface Proyeccion { diasTranscurridos: number; diasTotales: number; gastoActual: number; gastoProyectado: number; tasaQuemaDiaria: number; presupuestoDiarioPermitido: number; ingresoDisponible: number }
 interface ResumenPanel {
   tendencia: TendenciaMes[]
@@ -35,6 +35,7 @@ interface Kpis {
 interface Config {
   metaNecesidadesPct: number
   metaDeseosPct: number
+  metaDeudaPct: number
   metaAhorroPct: number
 }
 
@@ -340,7 +341,8 @@ export default function PaginaPanel() {
                 Distribución por pilares —&nbsp;
                 <span className="font-normal text-muted-foreground text-sm">
                   {Math.round((config?.metaNecesidadesPct ?? 0.5) * 100)}/
-                  {Math.round((config?.metaDeseosPct ?? 0.3) * 100)}/
+                  {Math.round((config?.metaDeseosPct ?? 0.3) * 100)}
+                  {(config?.metaDeudaPct ?? 0) > 0 && `/${Math.round((config?.metaDeudaPct ?? 0) * 100)}`}/
                   {Math.round((config?.metaAhorroPct ?? 0.2) * 100)}
                 </span>
               </CardTitle>
@@ -354,6 +356,9 @@ export default function PaginaPanel() {
                 return <>
                   <Barra50 etiqueta="Necesidades" icono="🏠" actual={dist.necesidades} objetivo={base * (config?.metaNecesidadesPct ?? 0.5)} pct={Math.round((config?.metaNecesidadesPct ?? 0.5) * 100)} />
                   <Barra50 etiqueta="Deseos"      icono="🎮" actual={dist.deseos}      objetivo={base * (config?.metaDeseosPct ?? 0.3)}      pct={Math.round((config?.metaDeseosPct ?? 0.3) * 100)} />
+                  {((config?.metaDeudaPct ?? 0) > 0 || dist.deuda > 0) && (
+                    <Barra50 etiqueta="Deuda" icono="💳" actual={dist.deuda} objetivo={base * (config?.metaDeudaPct ?? 0)} pct={Math.round((config?.metaDeudaPct ?? 0) * 100)} />
+                  )}
                   <Barra50 etiqueta="Ahorro"      icono="💰" actual={dist.ahorro}      objetivo={base * (config?.metaAhorroPct ?? 0.2)}      pct={Math.round((config?.metaAhorroPct ?? 0.2) * 100)} />
                 </>;
               })()}

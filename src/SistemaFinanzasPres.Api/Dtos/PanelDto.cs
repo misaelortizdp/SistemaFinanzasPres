@@ -28,6 +28,7 @@ public class DistribucionDto
 {
     public decimal Necesidades { get; set; }
     public decimal Deseos { get; set; }
+    public decimal Deuda { get; set; }
     public decimal Ahorro { get; set; }
     public decimal TotalIngresos { get; set; }
     public decimal IngresoDisponible { get; set; }
@@ -55,6 +56,7 @@ public class KpisPanelDto
     public decimal DiezmoMonto { get; set; }
     public decimal PctNecesidades { get; set; }
     public decimal PctDeseos { get; set; }
+    public decimal PctDeuda { get; set; }
     public decimal PctAhorro { get; set; }
     public decimal FondoEmergenciaActual { get; set; }
     public decimal FondoEmergenciaMeta { get; set; }

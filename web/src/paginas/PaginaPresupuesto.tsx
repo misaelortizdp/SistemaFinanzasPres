@@ -19,6 +19,7 @@ interface Linea {
 const PILARES = [
   { tipo: 1 as const, label: "Necesidades", icono: "🏠", color: "text-red-700 dark:text-red-400",     borde: "border-red-200 dark:border-red-800",     barra: "bg-red-500" },
   { tipo: 2 as const, label: "Deseos",      icono: "🎮", color: "text-purple-700 dark:text-purple-400", borde: "border-purple-200 dark:border-purple-800", barra: "bg-purple-500" },
+  { tipo: 5 as const, label: "Deuda",       icono: "💳", color: "text-orange-700 dark:text-orange-400", borde: "border-orange-200 dark:border-orange-800", barra: "bg-orange-500" },
   { tipo: 3 as const, label: "Ahorro",      icono: "💰", color: "text-emerald-700 dark:text-emerald-400", borde: "border-emerald-200 dark:border-emerald-800", barra: "bg-emerald-500" },
 ];
 
