@@ -56,6 +56,12 @@ public class AppDbContext : DbContext
         b.Entity<Debt>().Property(x => x.CurrentBalance).HasConversion<double>();
         b.Entity<Debt>().Property(x => x.InterestRate).HasConversion<double>();
         b.Entity<Debt>().Property(x => x.MinPayment).HasConversion<double>();
+        b.Entity<Debt>().Property(x => x.ExtraPayment).HasConversion<double>();
+        b.Entity<Debt>()
+            .HasOne(d => d.Category)
+            .WithMany()
+            .HasForeignKey(d => d.CategoryId)
+            .OnDelete(DeleteBehavior.SetNull);
 
         b.Entity<DebtPayment>().Property(x => x.Amount).HasConversion<double>();
         b.Entity<DebtPayment>().Property(x => x.InterestPortion).HasConversion<double>();

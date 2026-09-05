@@ -15,6 +15,7 @@ public class Debt
     public decimal InterestRate { get; set; }
 
     public decimal MinPayment { get; set; }
+    public decimal ExtraPayment { get; set; }
 
     public int DueDay { get; set; } = 1;
 
@@ -24,4 +25,10 @@ public class Debt
 
     [MaxLength(500)]
     public string? Notes { get; set; }
+
+    // Categoría de presupuesto vinculada — se crea/renombra sola junto con la deuda
+    // (ver DebtService). Su presupuesto mensual se calcula desde MinPayment+ExtraPayment,
+    // no se edita a mano (ver BudgetService).
+    public int? CategoryId { get; set; }
+    public Category? Category { get; set; }
 }

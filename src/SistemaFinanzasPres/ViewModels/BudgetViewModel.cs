@@ -65,6 +65,7 @@ public partial class BudgetViewModel : BaseViewModel
                     Available = c.Available.ToString("C0"),
                     Pct = c.Percent.ToString("P0"),
                     Status = c.Status,
+                    IsAutomatico = c.IsAutomatico,
                 };
                 row.PropertyChanged += OnRowChanged;
                 Rows.Add(row);
@@ -138,6 +139,7 @@ public partial class BudgetRow : ObservableObject
     public decimal Budgeted { get; set; }
     [ObservableProperty] private string budgetedText = string.Empty;
     [ObservableProperty] private bool isJustSaved;
+    public bool IsAutomatico { get; set; }
     public string Spent { get; set; } = string.Empty;
     public string Available { get; set; } = string.Empty;
     public string Pct { get; set; } = string.Empty;

@@ -160,6 +160,8 @@ public static class DbSeeder
             "ALTER TABLE AppConfigs ADD COLUMN AutoSnapshotEnabled INTEGER NOT NULL DEFAULT 1;",
             "ALTER TABLE AppConfigs ADD COLUMN AutoSnapshotDay INTEGER NOT NULL DEFAULT 1;",
             "ALTER TABLE AppConfigs ADD COLUMN MetaDeudaPct REAL NOT NULL DEFAULT 0;",
+            "ALTER TABLE Debts ADD COLUMN ExtraPayment REAL NOT NULL DEFAULT 0;",
+            "ALTER TABLE Debts ADD COLUMN CategoryId INTEGER NULL;",
         })
         {
             try { await db.Database.ExecuteSqlRawAsync(sql); }

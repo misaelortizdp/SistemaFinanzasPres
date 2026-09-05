@@ -56,12 +56,26 @@ public class DebtService
     public async Task AddDebtAsync(Debt d)
     {
         if (d.OriginalAmount <= 0) d.OriginalAmount = d.CurrentBalance;
+
+        // Cada deuda tiene su propia categoría de presupuesto (pilar Deuda), creada
+        // automáticamente — así el usuario no tiene que duplicar el alta a mano.
+        d.Category = new Category
+        {
+            Name = d.Name,
+            Pillar = Pillar.Deuda,
+            IsActive = d.IsActive,
+        };
         _db.Debts.Add(d);
         await _db.SaveChangesAsync();
     }
 
-    public async Task UpdateDebtAsync(Debt d)
+    public async Task UpdateDebtAsync(Debt d, string? nombreAnterior = null)
     {
+        if (d.CategoryId != null && nombreAnterior != null && nombreAnterior != d.Name)
+        {
+            var cat = await _db.Categories.FindAsync(d.CategoryId.Value);
+            if (cat != null) cat.Name = d.Name;
+        }
         _db.Debts.Update(d);
         await _db.SaveChangesAsync();
     }
@@ -70,6 +84,15 @@ public class DebtService
     {
         var existing = await _db.Debts.FindAsync(id);
         if (existing == null) return;
+
+        // La categoría se desactiva en vez de borrarse: preserva el histórico de
+        // transacciones ya registradas contra ella.
+        if (existing.CategoryId != null)
+        {
+            var cat = await _db.Categories.FindAsync(existing.CategoryId.Value);
+            if (cat != null) cat.IsActive = false;
+        }
+
         _db.Debts.Remove(existing);
         await _db.SaveChangesAsync();
     }

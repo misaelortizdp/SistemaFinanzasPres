@@ -51,6 +51,7 @@ public partial class DebtsViewModel : BaseViewModel
             Items.Clear();
             foreach (var d in debts)
             {
+                var pagoMensual = d.MinPayment + d.ExtraPayment;
                 Items.Add(new DebtRow(
                     d.Id, d.Name,
                     d.CurrentBalance, d.CurrentBalance.ToString("C0"),
@@ -59,7 +60,8 @@ public partial class DebtsViewModel : BaseViewModel
                     d.MinPayment, d.MinPayment.ToString("C0"),
                     d.DueDay,
                     d.OriginalAmount > 0 ? (decimal)(1 - d.CurrentBalance / d.OriginalAmount) : 0m,
-                    d.IsActive ? "" : "✓ Pagada"));
+                    d.IsActive ? "" : "✓ Pagada",
+                    d.IsActive ? $"📋 Presupuesto mensual: {pagoMensual:C0}" : string.Empty));
             }
         }
         finally { IsBusy = false; }
@@ -144,6 +146,7 @@ public record DebtRow(
     decimal MinPayment, string MinPaymentLabel,
     int DueDay,
     decimal Progress,
-    string StatusLabel);
+    string StatusLabel,
+    string PresupuestoLabel);
 
 public record PlanItemRow(string Name, int Months, string MonthsLabel, decimal Interest, string InterestLabel);

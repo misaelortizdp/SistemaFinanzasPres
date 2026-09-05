@@ -12,7 +12,8 @@ public record CategoryStatus(
     decimal Spent,
     decimal Available,
     decimal Percent,
-    string Status);
+    string Status,
+    bool IsAutomatico = false);
 
 public record PillarSummary(
     Pillar Pillar,
@@ -86,9 +87,17 @@ public class BudgetService
             .GroupBy(t => t.CategoryId)
             .ToDictionary(g => g.Key, g => g.Sum(x => x.Amount));
 
+        // Deudas activas vinculadas a una categoría: su presupuesto se calcula solo
+        // (MinPayment + ExtraPayment) — no se guarda a mano en Budgets.
+        var deudasActivas = await _db.Debts.AsNoTracking()
+            .Where(d => d.IsActive && d.CategoryId != null)
+            .ToListAsync(ct);
+        var pagoPorCategoria = deudasActivas.ToDictionary(d => d.CategoryId!.Value, d => d.MinPayment + d.ExtraPayment);
+
         var rows = categories.Select(c =>
         {
-            var b = budgetByCat.GetValueOrDefault(c.Id);
+            var esAutomatico = pagoPorCategoria.TryGetValue(c.Id, out var pagoDeuda);
+            var b = esAutomatico ? pagoDeuda : budgetByCat.GetValueOrDefault(c.Id);
             var s = spentByCat.GetValueOrDefault(c.Id);
             var pct = b > 0 ? s / b : 0m;
             string status =
@@ -96,7 +105,7 @@ public class BudgetService
                 pct > 1m ? "🔴 Excedido" :
                 pct > 0.85m ? "🟡 Alerta" :
                 "🟢 OK";
-            return new CategoryStatus(c.Id, c.Name, c.Pillar, b, s, b - s, pct, status);
+            return new CategoryStatus(c.Id, c.Name, c.Pillar, b, s, b - s, pct, status, esAutomatico);
         }).ToList();
 
         var ingresoTotal = incomesInMonth.Sum();

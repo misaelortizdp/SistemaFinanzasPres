@@ -23,6 +23,11 @@
             <Label Text="Pago mínimo mensual" Style="{StaticResource Muted}" />
             <Entry Text="{Binding MinPaymentText}" Keyboard="Numeric" Placeholder="0" />
 
+            <Label Text="Abono extra mensual" Style="{StaticResource Muted}" />
+            <Entry Text="{Binding ExtraPaymentText}" Keyboard="Numeric" Placeholder="0" />
+            <Label Text="💡 Pago mínimo + abono extra es lo que se presupuesta cada mes para esta deuda — se refleja solo en Presupuesto."
+                   Style="{StaticResource Muted}" FontSize="11" />
+
             <Label Text="Día de pago (1-31)" Style="{StaticResource Muted}" />
             <Entry Text="{Binding DueDay}" Keyboard="Numeric" />
 
