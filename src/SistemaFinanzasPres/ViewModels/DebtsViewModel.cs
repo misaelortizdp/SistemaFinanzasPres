@@ -15,23 +15,15 @@ public partial class DebtsViewModel : BaseViewModel
     {
         _debts = debts;
         Title = "Deudas";
-        StrategyOptions = new List<string> { "Avalancha (mayor interés)", "Bola de nieve (menor saldo)" };
-        SelectedStrategy = StrategyOptions[0];
     }
 
     [ObservableProperty] private string totalLabel = "$0";
     [ObservableProperty] private string minPaymentLabel = "$0";
     [ObservableProperty] private string weightedRateLabel = "0%";
     [ObservableProperty] private int activeCount;
+    [ObservableProperty] private string freedomLabel = "—";
 
-    [ObservableProperty] private string extraMonthlyText = "0";
-    [ObservableProperty] private string selectedStrategy = string.Empty;
-    [ObservableProperty] private string simulationSummary = "Define un aporte extra mensual y simula.";
-    [ObservableProperty] private bool hasSimulation;
-
-    public List<string> StrategyOptions { get; }
     public ObservableCollection<DebtRow> Items { get; } = new();
-    public ObservableCollection<PlanItemRow> PlanItems { get; } = new();
 
     [RelayCommand]
     public async Task LoadAsync()
@@ -48,10 +40,28 @@ public partial class DebtsViewModel : BaseViewModel
             WeightedRateLabel = (overview.WeightedRate / 100m).ToString("P1");
             ActiveCount = overview.ActiveCount;
 
+            var priorities = DebtService.AvalanchePriority(debts);
+            var months = debts.ToDictionary(d => d.Id, d => DebtService.MonthsToPayoff(d));
+            var computableMonths = debts
+                .Where(d => d.IsActive)
+                .Select(d => months[d.Id])
+                .Where(m => m.HasValue)
+                .Select(m => m!.Value)
+                .ToList();
+            FreedomLabel = computableMonths.Count > 0 ? $"{computableMonths.Max()} meses" : "—";
+
             Items.Clear();
             foreach (var d in debts)
             {
                 var pagoMensual = d.MinPayment + d.ExtraPayment;
+                var payoffLabel = string.Empty;
+                if (d.IsActive && priorities.TryGetValue(d.Id, out var priority))
+                {
+                    payoffLabel = months[d.Id] is int m
+                        ? $"🎯 Prioridad #{priority} · {m} meses para liquidar"
+                        : $"🎯 Prioridad #{priority} · con el pago actual no baja";
+                }
+
                 Items.Add(new DebtRow(
                     d.Id, d.Name,
                     d.CurrentBalance, d.CurrentBalance.ToString("C0"),
@@ -61,7 +71,8 @@ public partial class DebtsViewModel : BaseViewModel
                     d.DueDay,
                     d.OriginalAmount > 0 ? (decimal)(1 - d.CurrentBalance / d.OriginalAmount) : 0m,
                     d.IsActive ? "" : "✓ Pagada",
-                    d.IsActive ? $"📋 Presupuesto mensual: {pagoMensual:C0}" : string.Empty));
+                    d.IsActive ? $"📋 Presupuesto mensual: {pagoMensual:C0}" : string.Empty,
+                    payoffLabel));
             }
         }
         finally { IsBusy = false; }
@@ -112,30 +123,6 @@ public partial class DebtsViewModel : BaseViewModel
         await _debts.DeleteDebtAsync(row.Id);
         await LoadAsync();
     }
-
-    [RelayCommand]
-    private async Task SimulateAsync()
-    {
-        if (!decimal.TryParse(ExtraMonthlyText, out var extra) || extra < 0) extra = 0m;
-        var strat = SelectedStrategy.StartsWith("Avalancha")
-            ? PayoffStrategy.Avalanche
-            : PayoffStrategy.Snowball;
-
-        var result = await _debts.SimulateAsync(strat, extra);
-        SimulationSummary = result.Summary;
-        HasSimulation = result.Items.Count > 0;
-
-        PlanItems.Clear();
-        foreach (var item in result.Items)
-        {
-            var years = item.MonthsToPayoff / 12;
-            var months = item.MonthsToPayoff % 12;
-            var label = years > 0 ? $"{years}a {months}m" : $"{months}m";
-            PlanItems.Add(new PlanItemRow(
-                item.Name, item.MonthsToPayoff, label,
-                item.TotalInterest, item.TotalInterest.ToString("C0")));
-        }
-    }
 }
 
 public record DebtRow(
@@ -147,6 +134,5 @@ public record DebtRow(
     int DueDay,
     decimal Progress,
     string StatusLabel,
-    string PresupuestoLabel);
-
-public record PlanItemRow(string Name, int Months, string MonthsLabel, decimal Interest, string InterestLabel);
+    string PresupuestoLabel,
+    string PayoffLabel);

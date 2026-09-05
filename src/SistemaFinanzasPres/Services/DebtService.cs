@@ -4,18 +4,6 @@ using SistemaFinanzasPres.Models;
 
 namespace SistemaFinanzasPres.Services;
 
-public enum PayoffStrategy { Avalanche, Snowball }
-
-public record DebtPlanItem(int DebtId, string Name, int MonthsToPayoff, decimal TotalInterest);
-
-public record DebtPlanResult(
-    PayoffStrategy Strategy,
-    int TotalMonths,
-    decimal TotalInterest,
-    decimal TotalPaid,
-    IReadOnlyList<DebtPlanItem> Items,
-    string Summary);
-
 public record DebtsOverview(
     decimal TotalBalance,
     decimal TotalMinPayment,
@@ -122,98 +110,32 @@ public class DebtService
         await _db.SaveChangesAsync();
     }
 
-    public async Task<DebtPlanResult> SimulateAsync(PayoffStrategy strategy, decimal extraMonthly)
+    // Fórmula de amortización estándar (la misma que usa el Excel de referencia): con un pago
+    // mensual fijo, cuántos meses hacen falta para llevar el saldo a 0. Null cuando el pago no
+    // alcanza ni para cubrir el interés del mes — con ese pago la deuda nunca baja.
+    public static int? MonthsToPayoff(Debt d)
     {
-        var debts = await GetAllAsync();
-        return Simulate(debts, strategy, extraMonthly);
+        if (d.CurrentBalance <= 0) return 0;
+        var payment = d.MinPayment + d.ExtraPayment;
+        if (payment <= 0) return null;
+
+        var monthlyRate = d.InterestRate / 100m / 12m;
+        if (monthlyRate == 0) return (int)Math.Ceiling(d.CurrentBalance / payment);
+
+        var monthlyInterest = d.CurrentBalance * monthlyRate;
+        if (payment <= monthlyInterest) return null;
+
+        var months = -Math.Log(1 - (double)(monthlyInterest / payment)) / Math.Log(1 + (double)monthlyRate);
+        return (int)Math.Ceiling(months);
     }
 
-    public static DebtPlanResult Simulate(IReadOnlyList<Debt> debtsSource, PayoffStrategy strategy, decimal extraMonthly)
+    // Prioridad avalancha: 1 = mayor tasa de interés, solo entre las que aún tienen saldo.
+    public static Dictionary<int, int> AvalanchePriority(IEnumerable<Debt> debts)
     {
-        var debts = debtsSource
-            .Where(d => d.CurrentBalance > 0)
-            .Select(d => new SimDebt
-            {
-                Id = d.Id,
-                Name = d.Name,
-                Balance = d.CurrentBalance,
-                Rate = d.InterestRate / 12m / 100m,
-                MinPayment = d.MinPayment,
-                MonthsToZero = 0,
-                InterestPaid = 0m,
-            })
-            .ToList();
-
-        if (debts.Count == 0)
-            return new DebtPlanResult(strategy, 0, 0m, 0m, Array.Empty<DebtPlanItem>(),
-                "No tienes deudas activas. 🎉");
-
-        int month = 0;
-        decimal totalInterest = 0m;
-        decimal totalPaid = 0m;
-        const int MaxMonths = 600;
-
-        while (debts.Any(d => d.Balance > 0) && month < MaxMonths)
-        {
-            month++;
-            decimal extra = extraMonthly;
-
-            foreach (var d in debts.Where(x => x.Balance > 0))
-            {
-                var interest = Math.Round(d.Balance * d.Rate, 2);
-                d.InterestPaid += interest;
-                totalInterest += interest;
-                d.Balance += interest;
-
-                var pay = Math.Min(d.MinPayment, d.Balance);
-                d.Balance -= pay;
-                totalPaid += pay;
-            }
-
-            var queue = strategy == PayoffStrategy.Avalanche
-                ? debts.Where(d => d.Balance > 0).OrderByDescending(d => d.Rate).ToList()
-                : debts.Where(d => d.Balance > 0).OrderBy(d => d.Balance).ToList();
-
-            foreach (var d in queue)
-            {
-                if (extra <= 0) break;
-                var pay = Math.Min(extra, d.Balance);
-                d.Balance -= pay;
-                extra -= pay;
-                totalPaid += pay;
-            }
-
-            foreach (var d in debts.Where(d => d.Balance <= 0.01m && d.MonthsToZero == 0))
-            {
-                d.Balance = 0m;
-                d.MonthsToZero = month;
-            }
-        }
-
-        var items = debts
-            .OrderBy(d => d.MonthsToZero == 0 ? int.MaxValue : d.MonthsToZero)
-            .Select(d => new DebtPlanItem(
-                d.Id, d.Name,
-                d.MonthsToZero == 0 ? month : d.MonthsToZero,
-                Math.Round(d.InterestPaid, 2)))
-            .ToList();
-
-        var stratName = strategy == PayoffStrategy.Avalanche ? "Avalancha (mayor tasa primero)" : "Bola de nieve (menor saldo primero)";
-        var summary = month >= MaxMonths
-            ? $"Con esta estrategia ({stratName}), tu pago no alcanza ni para los intereses. Aumenta el aporte extra."
-            : $"Con {stratName} y {extraMonthly:C0} extra/mes, serás libre de deudas en {month} meses. Intereses totales: {Math.Round(totalInterest, 2):C0}.";
-
-        return new DebtPlanResult(strategy, month, Math.Round(totalInterest, 2), Math.Round(totalPaid, 2), items, summary);
-    }
-
-    private class SimDebt
-    {
-        public int Id;
-        public string Name = "";
-        public decimal Balance;
-        public decimal Rate;
-        public decimal MinPayment;
-        public int MonthsToZero;
-        public decimal InterestPaid;
+        return debts
+            .Where(d => d.IsActive && d.CurrentBalance > 0)
+            .OrderByDescending(d => d.InterestRate)
+            .Select((d, i) => (d.Id, Priority: i + 1))
+            .ToDictionary(x => x.Id, x => x.Priority);
     }
 }
