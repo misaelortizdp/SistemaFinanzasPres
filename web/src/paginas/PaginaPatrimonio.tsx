@@ -4,6 +4,7 @@ import { api } from "@/lib/api";
 import { formatoMoneda, formatoFecha } from "@/lib/hooks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/lib/useConfirm";
 
 interface Linea { nombre: string; monto: number; }
 interface PatrimonioActual {
@@ -17,6 +18,7 @@ interface Snapshot {
 
 export default function PaginaPatrimonio() {
   const cliente = useQueryClient();
+  const { confirm, ConfirmDialog } = useConfirm();
   const { data: actual } = useQuery({
     queryKey: ["patrimonio-actual"],
     queryFn: async () => (await api.get<PatrimonioActual>("/api/patrimonio/actual")).data,
@@ -43,6 +45,7 @@ export default function PaginaPatrimonio() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
+      <ConfirmDialog />
       <header>
         <h1 className="text-3xl font-bold">💎 Patrimonio</h1>
       </header>
@@ -132,7 +135,16 @@ export default function PaginaPatrimonio() {
                         </p>
                       )}
                       <Button size="icon" variant="ghost" className="h-6 w-6 mt-1"
-                        onClick={() => { if (confirm(`¿Eliminar snapshot del ${formatoFecha(s.fecha)}?`)) eliminar.mutate(s.id); }}>
+                        onClick={async () => {
+                          const confirmado = await confirm({
+                            title: "¿Eliminar snapshot?",
+                            description: `¿Estás seguro de que deseas eliminar el snapshot del ${formatoFecha(s.fecha)}? Esta acción no se puede deshacer.`,
+                            confirmText: "Eliminar",
+                            cancelText: "Cancelar",
+                            variant: "destructive"
+                          });
+                          if (confirmado) eliminar.mutate(s.id);
+                        }}>
                         <Trash2 className="w-3 h-3 text-destructive" />
                       </Button>
                     </div>

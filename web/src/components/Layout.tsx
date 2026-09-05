@@ -8,6 +8,7 @@ import {
 import { usarAutenticacion } from "@/autenticacion/ContextoAutenticacion";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { BottomNav } from "@/components/BottomNav";
 
 interface ItemNav {
   ruta: string;
@@ -92,9 +93,12 @@ export function Layout({ children }: { children: ReactNode }) {
       </aside>
 
       {/* Contenido */}
-      <main className="flex-1 min-h-screen p-4 md:p-8 pt-14 md:pt-8">
+      <main className="flex-1 min-h-screen p-4 md:p-8 pt-14 md:pt-8 pb-20 md:pb-8">
         {children}
       </main>
+
+      {/* Navegación inferior móvil */}
+      <BottomNav />
     </div>
   );
 }

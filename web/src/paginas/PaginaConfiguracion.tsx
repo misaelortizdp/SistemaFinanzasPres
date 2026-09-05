@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Save } from "lucide-react";
+import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -40,7 +41,7 @@ export default function PaginaConfiguracion() {
     mutationFn: async () => api.put("/api/configuracion", cfg),
     onSuccess: () => {
       cliente.invalidateQueries({ queryKey: ["configuracion"] });
-      alert("Configuración guardada ✓");
+      toast.success("Configuración guardada correctamente");
     },
   });
 

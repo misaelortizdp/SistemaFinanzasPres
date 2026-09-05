@@ -1,6 +1,7 @@
 import { FormEvent, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pencil, Trash2, Plus, ChevronLeft, ChevronRight, Search, X } from "lucide-react";
+import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { formatoFecha, formatoMoneda, mesActual, NOMBRES_MES, useCategorias, useCuentas } from "@/lib/hooks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +10,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { useConfirm } from "@/lib/useConfirm";
+import { SkeletonTable } from "@/components/ui/skeleton";
+import { obtenerMensajeError, validaciones } from "@/lib/errorUtils";
 
 interface Movimiento {
   id: number; fecha: string; concepto: string;
@@ -19,6 +23,7 @@ interface Movimiento {
 
 export default function PaginaMovimientos() {
   const cliente = useQueryClient();
+  const { confirm, ConfirmDialog } = useConfirm();
   const ahora = mesActual();
   const [anio, setAnio] = useState(ahora.anio);
   const [mes, setMes] = useState(ahora.mes);
@@ -39,14 +44,46 @@ export default function PaginaMovimientos() {
   const [cuentaId, setCuentaId] = useState<number | "">("");
   const [monto, setMonto] = useState("0");
   const [notas, setNotas] = useState("");
+  
+  // Estados para validación inline
+  const [errores, setErrores] = useState<Record<string, string>>({});
 
   function limpiar() {
     setEditando(null); setFecha(new Date().toISOString().slice(0, 10));
     setConcepto(""); setCategoriaId(0); setCuentaId(""); setMonto("0"); setNotas("");
+    setErrores({});
   }
+  
   function editar(m: Movimiento) {
     setEditando(m); setFecha(m.fecha.slice(0, 10)); setConcepto(m.concepto);
     setCategoriaId(m.categoriaId); setCuentaId(m.cuentaId ?? ""); setMonto(String(m.monto)); setNotas(m.notas ?? "");
+    setErrores({});
+  }
+  
+  // Validar campo individual
+  function validarCampo(campo: string, valor: any): string | null {
+    switch (campo) {
+      case "concepto":
+        return validaciones.requerido(valor, "concepto") || validaciones.longitudMinima(valor, 3, "concepto");
+      case "monto":
+        return validaciones.montoPositivo(valor, "monto");
+      case "categoriaId":
+        return !valor || valor === 0 ? "Selecciona una categoría" : null;
+      case "fecha":
+        return validaciones.fechaValida(valor, "fecha");
+      default:
+        return null;
+    }
+  }
+  
+  // Manejar cambio de campo con validación
+  function manejarCampo(campo: string, valor: any, setter: (v: any) => void) {
+    setter(valor);
+    const error = validarCampo(campo, valor);
+    setErrores(prev => ({
+      ...prev,
+      [campo]: error || ""
+    }));
   }
 
   const guardar = useMutation({
@@ -63,24 +100,64 @@ export default function PaginaMovimientos() {
       cliente.invalidateQueries({ queryKey: ["movimientos"] });
       cliente.invalidateQueries({ queryKey: ["cuentas"] });
       cliente.invalidateQueries({ queryKey: ["patrimonio-actual"] });
+      toast.success(editando ? "Movimiento actualizado" : "Movimiento agregado con éxito");
       limpiar();
+    },
+    onError: (error: any) => {
+      const mensaje = obtenerMensajeError(error, "No se pudo guardar el movimiento");
+      toast.error(mensaje);
     },
   });
 
   const eliminar = useMutation({
     mutationFn: async (id: number) => { await api.delete(`/api/movimientos/${id}`); },
+    onMutate: async (id: number) => {
+      await cliente.cancelQueries({ queryKey: ["movimientos", anio, mes] });
+      const anterior = cliente.getQueryData(["movimientos", anio, mes]);
+      
+      // Actualización optimista: eliminar de la lista
+      cliente.setQueryData(["movimientos", anio, mes], (old: Movimiento[] = []) => old.filter(m => m.id !== id));
+      
+      return { anterior };
+    },
     onSuccess: () => {
       cliente.invalidateQueries({ queryKey: ["movimientos"] });
       cliente.invalidateQueries({ queryKey: ["cuentas"] });
+      toast.success("Movimiento eliminado");
+    },
+    onError: (error: any, _variables, context) => {
+      if (context?.anterior) {
+        cliente.setQueryData(["movimientos", anio, mes], context.anterior);
+      }
+      const mensaje = obtenerMensajeError(error, "No se pudo eliminar el movimiento");
+      toast.error(mensaje);
     },
   });
 
   function enviar(e: FormEvent) {
     e.preventDefault();
-    if (!concepto.trim() || !categoriaId) {
-      alert("Falta concepto o categoría");
+    
+    // Validar todos los campos
+    const nuevosErrores: Record<string, string> = {};
+    
+    const errorConcepto = validarCampo("concepto", concepto);
+    if (errorConcepto) nuevosErrores.concepto = errorConcepto;
+    
+    const errorMonto = validarCampo("monto", monto);
+    if (errorMonto) nuevosErrores.monto = errorMonto;
+    
+    const errorCategoria = validarCampo("categoriaId", categoriaId);
+    if (errorCategoria) nuevosErrores.categoriaId = errorCategoria;
+    
+    const errorFecha = validarCampo("fecha", fecha);
+    if (errorFecha) nuevosErrores.fecha = errorFecha;
+    
+    if (Object.keys(nuevosErrores).length > 0) {
+      setErrores(nuevosErrores);
+      toast.error("Por favor, corrige los errores del formulario");
       return;
     }
+    
     guardar.mutate();
   }
 
@@ -113,45 +190,71 @@ export default function PaginaMovimientos() {
   const categoriasNoIngreso = categorias.filter(c => c.tipo !== 4);
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <header className="flex items-center justify-between flex-wrap gap-3">
-        <h1 className="text-3xl font-bold">🛒 Movimientos</h1>
-        <div className="flex items-center gap-2">
-          <Button size="icon" variant="outline" onClick={() => cambiarMes(-1)}><ChevronLeft className="w-4 h-4" /></Button>
-          <span className="text-sm font-medium min-w-[140px] text-center">{NOMBRES_MES[mes - 1]} {anio}</span>
-          <Button size="icon" variant="outline" onClick={() => cambiarMes(1)}><ChevronRight className="w-4 h-4" /></Button>
-        </div>
-      </header>
+    <>
+      <ConfirmDialog />
+      <div className="max-w-4xl mx-auto space-y-6">
+        <header className="flex items-center justify-between flex-wrap gap-3">
+          <h1 className="text-3xl font-bold">🛒 Movimientos</h1>
+          <div className="flex items-center gap-2">
+            <Button size="icon" variant="outline" onClick={() => cambiarMes(-1)} className="h-11 w-11"><ChevronLeft className="w-4 h-4" /></Button>
+            <span className="text-sm font-medium min-w-[140px] text-center">{NOMBRES_MES[mes - 1]} {anio}</span>
+            <Button size="icon" variant="outline" onClick={() => cambiarMes(1)} className="h-11 w-11"><ChevronRight className="w-4 h-4" /></Button>
+          </div>
+        </header>
 
       <Card>
         <CardHeader><CardTitle>{editando ? "Editar movimiento" : "Nuevo movimiento"}</CardTitle></CardHeader>
         <CardContent>
           <form onSubmit={enviar} className="space-y-3">
-            <div className="grid sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="space-y-1.5">
                 <Label>Fecha</Label>
-                <Input type="date" required value={fecha} onChange={(e) => setFecha(e.target.value)} />
+                <Input 
+                  type="date" 
+                  value={fecha} 
+                  onChange={(e) => manejarCampo("fecha", e.target.value, setFecha)} 
+                  className={`h-11 ${errores.fecha ? "border-red-500" : ""}`} 
+                />
+                {errores.fecha && <p className="text-xs text-red-600">{errores.fecha}</p>}
               </div>
               <div className="space-y-1.5">
                 <Label>Monto</Label>
-                <Input type="number" step="0.01" required value={monto} onChange={(e) => setMonto(e.target.value)} />
+                <Input 
+                  type="number" 
+                  step="0.01" 
+                  value={monto} 
+                  onChange={(e) => manejarCampo("monto", e.target.value, setMonto)} 
+                  className={`h-11 ${errores.monto ? "border-red-500" : ""}`} 
+                />
+                {errores.monto && <p className="text-xs text-red-600">{errores.monto}</p>}
               </div>
               <div className="space-y-1.5">
                 <Label>Categoría</Label>
-                <Select required value={categoriaId} onChange={(e) => setCategoriaId(Number(e.target.value))}>
+                <Select 
+                  value={categoriaId} 
+                  onChange={(e) => manejarCampo("categoriaId", Number(e.target.value), setCategoriaId)} 
+                  className={`h-11 ${errores.categoriaId ? "border-red-500" : ""}`}
+                >
                   <option value="">— Selecciona —</option>
                   {categoriasNoIngreso.map(c => <option key={c.id} value={c.id}>{c.icono} {c.nombre}</option>)}
                 </Select>
+                {errores.categoriaId && <p className="text-xs text-red-600">{errores.categoriaId}</p>}
               </div>
             </div>
-            <div className="grid sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Concepto</Label>
-                <Input required value={concepto} onChange={(e) => setConcepto(e.target.value)} placeholder="Comida en restaurante, etc." />
+                <Input 
+                  value={concepto} 
+                  onChange={(e) => manejarCampo("concepto", e.target.value, setConcepto)} 
+                  placeholder="Comida en restaurante, etc." 
+                  className={`h-11 ${errores.concepto ? "border-red-500" : ""}`} 
+                />
+                {errores.concepto && <p className="text-xs text-red-600">{errores.concepto}</p>}
               </div>
               <div className="space-y-1.5">
                 <Label>Cuenta (opcional)</Label>
-                <Select value={cuentaId} onChange={(e) => setCuentaId(e.target.value === "" ? "" : Number(e.target.value))}>
+                <Select value={cuentaId} onChange={(e) => setCuentaId(e.target.value === "" ? "" : Number(e.target.value))} className="h-11">
                   <option value="">— Sin cuenta —</option>
                   {cuentas.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
                 </Select>
@@ -159,13 +262,13 @@ export default function PaginaMovimientos() {
             </div>
             <div className="space-y-1.5">
               <Label>Notas (opcional)</Label>
-              <Textarea value={notas} onChange={(e) => setNotas(e.target.value)} />
+              <Textarea value={notas} onChange={(e) => setNotas(e.target.value)} className="min-h-[44px]" />
             </div>
             <div className="flex gap-2">
-              <Button type="submit" disabled={guardar.isPending}>
+              <Button type="submit" disabled={guardar.isPending} className="h-11 px-6">
                 <Plus className="w-4 h-4 mr-2" />{editando ? "Guardar" : "Agregar"}
               </Button>
-              {editando && <Button type="button" variant="outline" onClick={limpiar}>Cancelar</Button>}
+              {editando && <Button type="button" variant="outline" onClick={limpiar} className="h-11 px-6">Cancelar</Button>}
             </div>
           </form>
         </CardContent>
@@ -181,18 +284,18 @@ export default function PaginaMovimientos() {
         </CardHeader>
         <CardContent className="space-y-3">
           {/* Buscador */}
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-2.5 top-2.5 w-4 h-4 text-muted-foreground" />
+          <div className="flex gap-2 flex-wrap">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-2.5 top-3 w-4 h-4 text-muted-foreground" />
               <Input
-                className="pl-8"
+                className="pl-8 h-11"
                 placeholder="Buscar por concepto, categoría o notas…"
                 value={filtroTexto}
                 onChange={(e) => setFiltroTexto(e.target.value)}
               />
             </div>
             <Select
-              className="w-44"
+              className="w-full sm:w-48 h-11"
               value={filtroCategoria}
               onChange={(e) => setFiltroCategoria(e.target.value === "" ? "" : Number(e.target.value))}
             >
@@ -200,13 +303,13 @@ export default function PaginaMovimientos() {
               {categoriasNoIngreso.map(c => <option key={c.id} value={c.id}>{c.icono} {c.nombre}</option>)}
             </Select>
             {hayFiltro && (
-              <Button variant="ghost" size="icon" onClick={() => { setFiltroTexto(""); setFiltroCategoria(""); }}>
+              <Button variant="ghost" size="icon" onClick={() => { setFiltroTexto(""); setFiltroCategoria(""); }} className="h-11 w-11">
                 <X className="w-4 h-4" />
               </Button>
             )}
           </div>
 
-          {isLoading ? <p className="text-muted-foreground">Cargando…</p> :
+          {isLoading ? <SkeletonTable rows={8} /> :
            movimientosFiltrados.length === 0 ? (
              <p className="text-muted-foreground">{hayFiltro ? "Sin resultados para ese filtro." : "Sin movimientos este mes."}</p>
            ) : (
@@ -221,10 +324,19 @@ export default function PaginaMovimientos() {
                        {m.notas ? ` · ${m.notas}` : ""}
                      </p>
                    </div>
-                   <div className="flex items-center gap-1">
-                     <span className="font-semibold text-red-600">{formatoMoneda(m.monto)}</span>
-                     <Button size="icon" variant="ghost" onClick={() => editar(m)}><Pencil className="w-4 h-4" /></Button>
-                     <Button size="icon" variant="ghost" onClick={() => { if (confirm("¿Eliminar movimiento?")) eliminar.mutate(m.id); }}>
+                   <div className="flex items-center gap-1 shrink-0">
+                     <span className="font-semibold text-red-600 mr-1">{formatoMoneda(m.monto)}</span>
+                     <Button size="icon" variant="ghost" onClick={() => editar(m)} className="h-11 w-11"><Pencil className="w-4 h-4" /></Button>
+                     <Button size="icon" variant="ghost" onClick={async () => {
+                       const confirmado = await confirm({
+                         title: "Eliminar movimiento",
+                         description: "¿Estás seguro de eliminar este movimiento? Esta acción no se puede deshacer.",
+                         confirmText: "Eliminar",
+                         cancelText: "Cancelar",
+                         variant: "destructive"
+                       });
+                       if (confirmado) eliminar.mutate(m.id);
+                     }} className="h-11 w-11">
                        <Trash2 className="w-4 h-4 text-destructive" />
                      </Button>
                    </div>
@@ -234,6 +346,7 @@ export default function PaginaMovimientos() {
            )}
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </>
   );
 }

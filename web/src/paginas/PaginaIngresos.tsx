@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { useConfirm } from "@/lib/useConfirm";
 
 interface Ingreso {
   id: number; fecha: string; concepto: string; monto: number;
@@ -17,6 +18,7 @@ interface Ingreso {
 
 export default function PaginaIngresos() {
   const cliente = useQueryClient();
+  const { confirm, ConfirmDialog } = useConfirm();
   const ahora = mesActual();
   const [anio, setAnio] = useState(ahora.anio);
   const [mes, setMes] = useState(ahora.mes);
@@ -81,6 +83,7 @@ export default function PaginaIngresos() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
+      <ConfirmDialog />
       <header className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="text-3xl font-bold">💰 Ingresos</h1>
         <div className="flex items-center gap-2">
@@ -143,7 +146,16 @@ export default function PaginaIngresos() {
                  <div className="flex items-center gap-1">
                    <span className="font-semibold text-emerald-600">{formatoMoneda(i.monto)}</span>
                    <Button size="icon" variant="ghost" onClick={() => editar(i)}><Pencil className="w-4 h-4" /></Button>
-                   <Button size="icon" variant="ghost" onClick={() => { if (confirm("¿Eliminar ingreso?")) eliminar.mutate(i.id); }}>
+                   <Button size="icon" variant="ghost" onClick={async () => {
+                     const confirmado = await confirm({
+                       title: "¿Eliminar ingreso?",
+                       description: "¿Estás seguro de que deseas eliminar este ingreso? Esta acción no se puede deshacer.",
+                       confirmText: "Eliminar",
+                       cancelText: "Cancelar",
+                       variant: "destructive"
+                     });
+                     if (confirmado) eliminar.mutate(i.id);
+                   }}>
                      <Trash2 className="w-4 h-4 text-destructive" />
                    </Button>
                  </div>

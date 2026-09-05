@@ -1,11 +1,15 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, Copy } from "lucide-react";
+import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { formatoMoneda, mesActual, NOMBRES_MES, useCategorias } from "@/lib/hooks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useConfirm } from "@/lib/useConfirm";
+import { Skeleton } from "@/components/ui/skeleton";
+import { obtenerMensajeError } from "@/lib/errorUtils";
 
 interface Linea {
   id: number; categoriaId: number; nombreCategoria?: string;
@@ -20,6 +24,7 @@ const PILARES = [
 
 export default function PaginaPresupuesto() {
   const cliente = useQueryClient();
+  const { confirm, ConfirmDialog } = useConfirm();
   const ahora = mesActual();
   const [anio, setAnio] = useState(ahora.anio);
   const [mes, setMes] = useState(ahora.mes);
@@ -34,14 +39,43 @@ export default function PaginaPresupuesto() {
     mutationFn: async (datos: { categoriaId: number; monto: number }) => {
       await api.put("/api/presupuesto", { categoriaId: datos.categoriaId, anio, mes, monto: datos.monto });
     },
-    onSuccess: () => cliente.invalidateQueries({ queryKey: ["presupuesto", anio, mes] }),
+    onMutate: async (datos: { categoriaId: number; monto: number }) => {
+      await cliente.cancelQueries({ queryKey: ["presupuesto", anio, mes] });
+      const anterior = cliente.getQueryData(["presupuesto", anio, mes]);
+      
+      // Actualización optimista
+      cliente.setQueryData(["presupuesto", anio, mes], (old: Linea[] = []) => {
+        const existe = old.find(l => l.categoriaId === datos.categoriaId);
+        if (existe) {
+          return old.map(l => l.categoriaId === datos.categoriaId ? { ...l, monto: datos.monto } : l);
+        }
+        return old;
+      });
+      
+      return { anterior };
+    },
+    onSuccess: () => {
+      cliente.invalidateQueries({ queryKey: ["presupuesto", anio, mes] });
+      toast.success("Presupuesto actualizado");
+    },
+    onError: (error, _variables, context) => {
+      if (context?.anterior) {
+        cliente.setQueryData(["presupuesto", anio, mes], context.anterior);
+      }
+      const mensaje = obtenerMensajeError(error, "No se pudo actualizar el presupuesto");
+      toast.error(mensaje);
+    },
   });
 
   const copiarMesAnterior = useMutation({
     mutationFn: async () => (await api.post(`/api/presupuesto/copiar-mes-anterior?anio=${anio}&mes=${mes}`)).data,
     onSuccess: (datos: any) => {
       cliente.invalidateQueries({ queryKey: ["presupuesto", anio, mes] });
-      alert(`Copiadas ${datos?.copiadas ?? 0} categorías del mes anterior.`);
+      toast.success(`Copiadas ${datos?.copiadas ?? 0} categorías del mes anterior`);
+    },
+    onError: (error: any) => {
+      const mensaje = obtenerMensajeError(error, "No se pudo copiar el mes anterior");
+      toast.error(mensaje);
     },
   });
 
@@ -63,15 +97,17 @@ export default function PaginaPresupuesto() {
   const totalEjecutado = filas.reduce((s, f) => s + f.ejecutado, 0);
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      <header className="flex items-center justify-between flex-wrap gap-3">
-        <h1 className="text-3xl font-bold">📊 Presupuesto</h1>
-        <div className="flex items-center gap-2">
-          <Button size="icon" variant="outline" onClick={() => cambiarMes(-1)}><ChevronLeft className="w-4 h-4" /></Button>
-          <span className="text-sm font-medium min-w-[140px] text-center">{NOMBRES_MES[mes - 1]} {anio}</span>
-          <Button size="icon" variant="outline" onClick={() => cambiarMes(1)}><ChevronRight className="w-4 h-4" /></Button>
-        </div>
-      </header>
+    <>
+      <ConfirmDialog />
+      <div className="max-w-5xl mx-auto space-y-6">
+        <header className="flex items-center justify-between flex-wrap gap-3">
+          <h1 className="text-3xl font-bold">📊 Presupuesto</h1>
+          <div className="flex items-center gap-2">
+            <Button size="icon" variant="outline" onClick={() => cambiarMes(-1)} className="h-11 w-11"><ChevronLeft className="w-4 h-4" /></Button>
+            <span className="text-sm font-medium min-w-[140px] text-center">{NOMBRES_MES[mes - 1]} {anio}</span>
+            <Button size="icon" variant="outline" onClick={() => cambiarMes(1)} className="h-11 w-11"><ChevronRight className="w-4 h-4" /></Button>
+          </div>
+        </header>
 
       {/* Resumen global */}
       <Card>
@@ -80,8 +116,14 @@ export default function PaginaPresupuesto() {
             <p className="text-sm text-muted-foreground">Total ejecutado / presupuestado</p>
             <p className="text-xl font-bold">{formatoMoneda(totalEjecutado)} / {formatoMoneda(totalPresupuestado)}</p>
           </div>
-          <Button variant="outline" onClick={() => {
-            if (confirm("¿Importar montos del mes anterior para categorías sin presupuesto?")) copiarMesAnterior.mutate();
+          <Button variant="outline" onClick={async () => {
+            const confirmado = await confirm({
+              title: "Copiar mes anterior",
+              description: "¿Importar montos del mes anterior para categorías sin presupuesto?",
+              confirmText: "Copiar",
+              cancelText: "Cancelar"
+            });
+            if (confirmado) copiarMesAnterior.mutate();
           }}>
             <Copy className="w-4 h-4 mr-2" />Copiar mes anterior
           </Button>
@@ -90,7 +132,34 @@ export default function PaginaPresupuesto() {
 
       {/* Pilares */}
       {isLoading ? (
-        <p className="text-muted-foreground">Cargando…</p>
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <Card key={i}>
+              <CardContent className="pt-5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <Skeleton className="h-5 w-32" />
+                  <Skeleton className="h-4 w-24" />
+                </div>
+                <Skeleton className="h-2 w-full" />
+                {[1, 2, 3].map((j) => (
+                  <div key={j} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Skeleton className="h-4 w-4 rounded-full" />
+                        <Skeleton className="h-4 w-28" />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Skeleton className="h-4 w-16" />
+                        <Skeleton className="h-8 w-28" />
+                      </div>
+                    </div>
+                    <Skeleton className="h-1 w-full" />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       ) : filas.length === 0 ? (
         <p className="text-muted-foreground">No tienes categorías. Crea algunas en Categorías.</p>
       ) : (
@@ -167,6 +236,7 @@ export default function PaginaPresupuesto() {
           })}
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }

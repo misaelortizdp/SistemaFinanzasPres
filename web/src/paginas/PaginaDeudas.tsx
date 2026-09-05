@@ -1,12 +1,14 @@
 import { FormEvent, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pencil, Trash2, Plus, DollarSign, History, BarChart2, X } from "lucide-react";
+import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { formatoMoneda, formatoFecha } from "@/lib/hooks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useConfirm } from "@/lib/useConfirm";
 
 interface Deuda {
   id: number; nombre: string;
@@ -25,6 +27,7 @@ interface SimResult { estrategia: string; mesesTotales: number; interesTotalPaga
 
 export default function PaginaDeudas() {
   const cliente = useQueryClient();
+  const { confirm, ConfirmDialog } = useConfirm();
   const { data: deudas = [], isLoading } = useQuery({
     queryKey: ["deudas"],
     queryFn: async () => (await api.get<Deuda[]>("/api/deudas")).data,
@@ -112,7 +115,10 @@ export default function PaginaDeudas() {
     const v = prompt(`Monto del pago a "${d.nombre}":`, String(d.pagoMinimo || ""));
     if (!v) return;
     const monto = parseFloat(v);
-    if (!monto || monto <= 0) return alert("Monto inválido");
+    if (!monto || monto <= 0) {
+      toast.error("El monto ingresado no es válido");
+      return;
+    }
     pagar.mutate({ id: d.id, monto });
   }
 
@@ -125,6 +131,7 @@ export default function PaginaDeudas() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
+      <ConfirmDialog />
       <header>
         <h1 className="text-3xl font-bold">💳 Deudas</h1>
       </header>
@@ -230,7 +237,16 @@ export default function PaginaDeudas() {
                          <History className="w-4 h-4" />
                        </Button>
                        <Button size="icon" variant="ghost" onClick={() => editar(d)}><Pencil className="w-4 h-4" /></Button>
-                       <Button size="icon" variant="ghost" onClick={() => { if (confirm(`¿Eliminar "${d.nombre}"?`)) eliminar.mutate(d.id); }}>
+                       <Button size="icon" variant="ghost" onClick={async () => {
+                         const confirmado = await confirm({
+                           title: "¿Eliminar deuda?",
+                           description: `¿Estás seguro de que deseas eliminar "${d.nombre}"? Esta acción no se puede deshacer.`,
+                           confirmText: "Eliminar",
+                           cancelText: "Cancelar",
+                           variant: "destructive"
+                         });
+                         if (confirmado) eliminar.mutate(d.id);
+                       }}>
                          <Trash2 className="w-4 h-4 text-destructive" />
                        </Button>
                      </div>
