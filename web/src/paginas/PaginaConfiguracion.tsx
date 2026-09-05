@@ -8,6 +8,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatoMoneda } from "@/lib/hooks";
+import { cn } from "@/lib/utils";
+import PaginaCategorias from "@/paginas/PaginaCategorias";
+import PaginaCuentas from "@/paginas/PaginaCuentas";
+import PaginaMetas from "@/paginas/PaginaMetas";
+import PaginaPatrimonio from "@/paginas/PaginaPatrimonio";
+
+const SECCIONES = [
+  { id: "general",     etiqueta: "General",     icono: "⚙️" },
+  { id: "categorias",  etiqueta: "Categorías",  icono: "🗂" },
+  { id: "cuentas",     etiqueta: "Cuentas",     icono: "🏦" },
+  { id: "metas",       etiqueta: "Metas",       icono: "🎯" },
+  { id: "patrimonio",  etiqueta: "Patrimonio",  icono: "💎" },
+] as const;
+type Seccion = typeof SECCIONES[number]["id"];
 
 interface Config {
   diezmoPct: number;
@@ -35,6 +49,7 @@ export default function PaginaConfiguracion() {
 
   const [cfg, setCfg] = useState<Config>(VACIO);
   const [ingresoBase, setIngresoBase] = useState("15000");
+  const [seccion, setSeccion] = useState<Seccion>("general");
   useEffect(() => { if (data) setCfg(data); }, [data]);
 
   const guardar = useMutation({
@@ -66,6 +81,30 @@ export default function PaginaConfiguracion() {
     <div className="max-w-3xl mx-auto space-y-6">
       <header><h1 className="text-3xl font-bold">⚙️ Configuración</h1></header>
 
+      <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
+        {SECCIONES.map((s) => (
+          <button
+            key={s.id}
+            onClick={() => setSeccion(s.id)}
+            className={cn(
+              "shrink-0 px-3.5 py-2 rounded-md text-sm font-medium transition-colors",
+              seccion === s.id
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted text-muted-foreground hover:bg-accent"
+            )}
+          >
+            {s.icono} {s.etiqueta}
+          </button>
+        ))}
+      </div>
+
+      {seccion === "categorias" && <PaginaCategorias />}
+      {seccion === "cuentas" && <PaginaCuentas />}
+      {seccion === "metas" && <PaginaMetas />}
+      {seccion === "patrimonio" && <PaginaPatrimonio />}
+
+      {seccion === "general" && (
+      <>
       <form onSubmit={enviar} className="space-y-6">
         <Card>
           <CardHeader><CardTitle>Metas por pilar</CardTitle></CardHeader>
@@ -170,6 +209,8 @@ export default function PaginaConfiguracion() {
           </div>
         </CardContent>
       </Card>
+      </>
+      )}
     </div>
   );
 }

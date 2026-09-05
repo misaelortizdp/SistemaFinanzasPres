@@ -1,8 +1,8 @@
 import { ReactNode, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import {
-  LayoutDashboard, Wallet, ArrowDownUp, PieChart,
-  CreditCard, Target, Gem, Settings, LogOut, Menu, X, Tags,
+  LayoutDashboard, ArrowDownUp, PieChart,
+  CreditCard, Settings, LogOut, Menu, X,
 } from "lucide-react";
 import { usarAutenticacion } from "@/autenticacion/ContextoAutenticacion";
 import { cn } from "@/lib/utils";
@@ -19,11 +19,7 @@ const ITEMS: ItemNav[] = [
   { ruta: "/",              etiqueta: "Panel",         Icono: LayoutDashboard },
   { ruta: "/movimientos",   etiqueta: "Movimientos",   Icono: ArrowDownUp },
   { ruta: "/presupuesto",   etiqueta: "Presupuesto",   Icono: PieChart },
-  { ruta: "/cuentas",       etiqueta: "Cuentas",       Icono: Wallet },
   { ruta: "/deudas",        etiqueta: "Deudas",        Icono: CreditCard },
-  { ruta: "/metas",         etiqueta: "Metas",         Icono: Target },
-  { ruta: "/patrimonio",    etiqueta: "Patrimonio",    Icono: Gem },
-  { ruta: "/categorias",    etiqueta: "Categorías",    Icono: Tags },
   { ruta: "/configuracion", etiqueta: "Configuración", Icono: Settings },
 ];
 

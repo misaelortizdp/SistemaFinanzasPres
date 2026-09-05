@@ -142,12 +142,9 @@ export default function PaginaCuentas() {
   const total = cuentas.reduce((s, c) => s + c.saldo, 0);
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
+    <div className="space-y-6">
       <ConfirmDialog />
-      <header>
-        <h1 className="text-3xl font-bold">🏦 Cuentas</h1>
-        <p className="text-muted-foreground">Saldo total: <span className="font-semibold">{formatoMoneda(total)}</span></p>
-      </header>
+      <p className="text-muted-foreground">Saldo total: <span className="font-semibold">{formatoMoneda(total)}</span></p>
 
       <Card>
         <CardHeader><CardTitle>{editando ? `Editar: ${editando.nombre}` : "Nueva cuenta"}</CardTitle></CardHeader>

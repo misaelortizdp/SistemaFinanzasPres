@@ -134,17 +134,14 @@ export default function PaginaMetas() {
   const totalObjetivo = metas.filter(m => m.activa).reduce((s, m) => s + m.objetivo, 0);
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="space-y-6">
       <ConfirmDialog />
-      <header>
-        <h1 className="text-3xl font-bold">🎯 Metas de ahorro</h1>
-        {metas.length > 0 && (
-          <p className="text-muted-foreground">
-            Ahorrado: <span className="font-semibold text-emerald-600">{formatoMoneda(totalAhorrado)}</span> de{" "}
-            <span className="font-semibold">{formatoMoneda(totalObjetivo)}</span>
-          </p>
-        )}
-      </header>
+      {metas.length > 0 && (
+        <p className="text-muted-foreground">
+          Ahorrado: <span className="font-semibold text-emerald-600">{formatoMoneda(totalAhorrado)}</span> de{" "}
+          <span className="font-semibold">{formatoMoneda(totalObjetivo)}</span>
+        </p>
+      )}
 
       <Card>
         <CardHeader><CardTitle>{editando ? "Editar meta" : "Nueva meta"}</CardTitle></CardHeader>
