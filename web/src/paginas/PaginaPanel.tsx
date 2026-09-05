@@ -438,7 +438,7 @@ export default function PaginaPanel() {
                   {((config?.metaDeudaPct ?? 0) > 0 || dist.deuda > 0) && (
                     <Barra50 etiqueta="Deuda" icono="💳" actual={dist.deuda} objetivo={base * (config?.metaDeudaPct ?? 0)} pct={Math.round((config?.metaDeudaPct ?? 0) * 100)} />
                   )}
-                  <Barra50 etiqueta="Ahorro"      icono="💰" actual={dist.ahorro}      objetivo={base * (config?.metaAhorroPct ?? 0.2)}      pct={Math.round((config?.metaAhorroPct ?? 0.2) * 100)} />
+                  <Barra50 etiqueta="Ahorro"      icono="💰" actual={dist.ahorro}      objetivo={base * (config?.metaAhorroPct ?? 0.2)}      pct={Math.round((config?.metaAhorroPct ?? 0.2) * 100)} metaMinima />
                 </>;
               })()}
             </CardContent>
@@ -500,23 +500,27 @@ function TarjetaKpi({ icono, etiqueta, valor, colorValor, tendencia }: { icono: 
   );
 }
 
-function Barra50({ etiqueta, icono, actual, objetivo, pct }: { etiqueta: string; icono: string; actual: number; objetivo: number; pct: number }) {
+function Barra50({ etiqueta, icono, actual, objetivo, pct, metaMinima = false }: { etiqueta: string; icono: string; actual: number; objetivo: number; pct: number; metaMinima?: boolean }) {
   const porcentaje = objetivo > 0 ? Math.min(100, (actual / objetivo) * 100) : 0;
-  const excedido = actual > objetivo;
-  const cerca = !excedido && porcentaje >= 80;
+  // Para Ahorro la meta es un mínimo a alcanzar (más es mejor); para el resto es un tope
+  // a no pasar (menos es mejor) — el color/mensaje se invierte según cuál es.
+  const bien = metaMinima ? actual >= objetivo : actual <= objetivo;
+  const cerca = !bien && porcentaje >= 80;
   return (
     <div className="space-y-1">
       <div className="flex justify-between text-sm">
         <span className="font-medium">{icono} {etiqueta} <span className="text-muted-foreground font-normal">(meta {pct}%)</span></span>
-        <span className={excedido ? "text-red-600 font-semibold" : cerca ? "text-amber-600 font-semibold" : "text-muted-foreground"}>
+        <span className={!bien ? (cerca ? "text-amber-600 font-semibold" : "text-red-600 font-semibold") : "text-muted-foreground"}>
           {formatoMoneda(actual)} / {formatoMoneda(objetivo)}
         </span>
       </div>
       <div className="h-2 bg-muted rounded-full overflow-hidden">
-        <div className={`h-full transition-all rounded-full ${excedido ? "bg-red-500" : cerca ? "bg-amber-500" : "bg-emerald-500"}`} style={{ width: `${porcentaje}%` }} />
+        <div className={`h-full transition-all rounded-full ${!bien ? (cerca ? "bg-amber-500" : "bg-red-500") : "bg-emerald-500"}`} style={{ width: `${porcentaje}%` }} />
       </div>
       <p className="text-xs text-muted-foreground">
-        {excedido ? `Excediste el límite por ${formatoMoneda(actual - objetivo)}` : `Disponible: ${formatoMoneda(objetivo - actual)}`}
+        {metaMinima
+          ? (bien ? `Meta alcanzada, +${formatoMoneda(actual - objetivo)}` : `Te faltan ${formatoMoneda(objetivo - actual)} para tu meta`)
+          : (bien ? `Disponible: ${formatoMoneda(objetivo - actual)}` : `Excediste el límite por ${formatoMoneda(actual - objetivo)}`)}
       </p>
     </div>
   );
