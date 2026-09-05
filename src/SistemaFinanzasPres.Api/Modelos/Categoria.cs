@@ -8,6 +8,7 @@ public enum TipoCategoria
     Deseo = 2,
     Ahorro = 3,
     Ingreso = 4,
+    Deuda = 5,
 }
 
 public class Categoria

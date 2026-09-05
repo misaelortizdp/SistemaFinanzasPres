@@ -84,12 +84,14 @@ public class PanelController : ControllerBase
 
         var necesidades = movMes.Where(m => m.TipoCat == TipoCategoria.Necesidad).Sum(m => m.Monto);
         var deseos = movMes.Where(m => m.TipoCat == TipoCategoria.Deseo).Sum(m => m.Monto);
+        var deuda = movMes.Where(m => m.TipoCat == TipoCategoria.Deuda).Sum(m => m.Monto);
         var ahorro = movMes.Where(m => m.TipoCat == TipoCategoria.Ahorro).Sum(m => m.Monto);
 
         var distribucion = new DistribucionDto
         {
             Necesidades = necesidades,
             Deseos = deseos,
+            Deuda = deuda,
             Ahorro = ahorro,
             TotalIngresos = ingresosActual,
             IngresoDisponible = ingresoDisponible,
@@ -159,6 +161,7 @@ public class PanelController : ControllerBase
         var totalGastos = movMes.Sum(m => m.Monto);
         var necesidades = movMes.Where(m => m.TipoCat == TipoCategoria.Necesidad).Sum(m => m.Monto);
         var deseos = movMes.Where(m => m.TipoCat == TipoCategoria.Deseo).Sum(m => m.Monto);
+        var deudaPagada = movMes.Where(m => m.TipoCat == TipoCategoria.Deuda).Sum(m => m.Monto);
         var ahorroReal = movMes.Where(m => m.TipoCat == TipoCategoria.Ahorro).Sum(m => m.Monto);
         var ahorroMensual = ingresoDisponible - totalGastos;
         var tasaAhorro = ingresoDisponible > 0 ? Math.Round((ahorroMensual / ingresoDisponible) * 100, 1) : 0;
@@ -166,6 +169,7 @@ public class PanelController : ControllerBase
         // Porcentajes reales sobre ingreso disponible
         var pctNec = ingresoDisponible > 0 ? Math.Round((necesidades / ingresoDisponible) * 100, 1) : 0;
         var pctDes = ingresoDisponible > 0 ? Math.Round((deseos / ingresoDisponible) * 100, 1) : 0;
+        var pctDeu = ingresoDisponible > 0 ? Math.Round((deudaPagada / ingresoDisponible) * 100, 1) : 0;
         var pctAhor = ingresoDisponible > 0 ? Math.Round((ahorroReal / ingresoDisponible) * 100, 1) : 0;
 
         // Fondo de emergencia: gastos de necesidades promedio 3 meses × meses meta
@@ -198,6 +202,7 @@ public class PanelController : ControllerBase
             DiezmoMonto = diezmoMonto,
             PctNecesidades = pctNec,
             PctDeseos = pctDes,
+            PctDeuda = pctDeu,
             PctAhorro = pctAhor,
             FondoEmergenciaActual = fondoActual,
             FondoEmergenciaMeta = fondoMeta,

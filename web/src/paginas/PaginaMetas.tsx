@@ -1,6 +1,7 @@
 import { FormEvent, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pencil, Trash2, Plus, PiggyBank } from "lucide-react";
+import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { formatoMoneda, formatoFecha } from "@/lib/hooks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { useConfirm } from "@/lib/useConfirm";
 
 interface Meta {
   id: number; nombre: string; prioridad: string;
@@ -52,6 +54,7 @@ function aporteRecomendado(m: Meta): number | null {
 
 export default function PaginaMetas() {
   const cliente = useQueryClient();
+  const { confirm, ConfirmDialog } = useConfirm();
   const { data: metas = [], isLoading } = useQuery({
     queryKey: ["metas"],
     queryFn: async () => (await api.get<Meta[]>("/api/metas-ahorro")).data,
@@ -108,7 +111,10 @@ export default function PaginaMetas() {
 
   function enviar(e: FormEvent) {
     e.preventDefault();
-    if (!nombre.trim() || parseFloat(objetivo) <= 0) return alert("Falta nombre o monto objetivo");
+    if (!nombre.trim() || parseFloat(objetivo) <= 0) {
+      toast.error("Debes ingresar un nombre y un monto objetivo válido");
+      return;
+    }
     guardar.mutate();
   }
 
@@ -117,7 +123,10 @@ export default function PaginaMetas() {
     const v = prompt(`Aporte para "${m.nombre}". Restante: ${formatoMoneda(m.objetivo - m.acumulado)}`, String(sugerido || "0"));
     if (!v) return;
     const monto = parseFloat(v);
-    if (!monto || monto <= 0) return alert("Monto inválido");
+    if (!monto || monto <= 0) {
+      toast.error("El monto ingresado no es válido");
+      return;
+    }
     aportar.mutate({ id: m.id, monto });
   }
 
@@ -126,6 +135,7 @@ export default function PaginaMetas() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
+      <ConfirmDialog />
       <header>
         <h1 className="text-3xl font-bold">🎯 Metas de ahorro</h1>
         {metas.length > 0 && (
@@ -210,7 +220,16 @@ export default function PaginaMetas() {
                          <PiggyBank className="w-3.5 h-3.5 mr-1" />Aportar
                        </Button>
                        <Button size="icon" variant="ghost" onClick={() => editar(m)}><Pencil className="w-4 h-4" /></Button>
-                       <Button size="icon" variant="ghost" onClick={() => { if (confirm(`¿Eliminar "${m.nombre}"?`)) eliminar.mutate(m.id); }}>
+                       <Button size="icon" variant="ghost" onClick={async () => {
+                         const confirmado = await confirm({
+                           title: "¿Eliminar meta?",
+                           description: `¿Estás seguro de que deseas eliminar la meta "${m.nombre}"? Esta acción no se puede deshacer.`,
+                           confirmText: "Eliminar",
+                           cancelText: "Cancelar",
+                           variant: "destructive"
+                         });
+                         if (confirmado) eliminar.mutate(m.id);
+                       }}>
                          <Trash2 className="w-4 h-4 text-destructive" />
                        </Button>
                      </div>

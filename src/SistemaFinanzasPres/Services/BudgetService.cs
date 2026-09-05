@@ -119,6 +119,7 @@ public class BudgetService
         {
             BuildPillar(Pillar.Necesidad,   config.MetaNecesidadesPct),
             BuildPillar(Pillar.Deseo,       config.MetaDeseosPct),
+            BuildPillar(Pillar.Deuda,       config.MetaDeudaPct),
             BuildPillar(Pillar.Ahorro,      config.MetaAhorroPct),
         };
 

@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Save } from "lucide-react";
+import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,7 @@ import { formatoMoneda } from "@/lib/hooks";
 
 interface Config {
   diezmoPct: number;
-  metaNecesidadesPct: number; metaDeseosPct: number; metaAhorroPct: number;
+  metaNecesidadesPct: number; metaDeseosPct: number; metaDeudaPct: number; metaAhorroPct: number;
   fondoEmergenciaMeses: number;
   metaAhorroMinimoPct: number; metaAhorroOptimoPct: number;
   categoriaDiezmoId?: number | null;
@@ -19,7 +20,7 @@ interface Config {
 
 const VACIO: Config = {
   diezmoPct: 0.10,
-  metaNecesidadesPct: 0.50, metaDeseosPct: 0.30, metaAhorroPct: 0.20,
+  metaNecesidadesPct: 0.50, metaDeseosPct: 0.30, metaDeudaPct: 0, metaAhorroPct: 0.20,
   fondoEmergenciaMeses: 4,
   metaAhorroMinimoPct: 0.20, metaAhorroOptimoPct: 0.30,
   snapshotAutomatico: true, snapshotDia: 1,
@@ -40,13 +41,13 @@ export default function PaginaConfiguracion() {
     mutationFn: async () => api.put("/api/configuracion", cfg),
     onSuccess: () => {
       cliente.invalidateQueries({ queryKey: ["configuracion"] });
-      alert("Configuración guardada ✓");
+      toast.success("Configuración guardada correctamente");
     },
   });
 
   function enviar(e: FormEvent) { e.preventDefault(); guardar.mutate(); }
 
-  const sumaPct = Math.round((cfg.metaNecesidadesPct + cfg.metaDeseosPct + cfg.metaAhorroPct) * 100);
+  const sumaPct = Math.round((cfg.metaNecesidadesPct + cfg.metaDeseosPct + cfg.metaDeudaPct + cfg.metaAhorroPct) * 100);
   const sumaOk = sumaPct === 100;
 
   function pct(v: number) { return (v * 100).toFixed(0); }
@@ -58,6 +59,7 @@ export default function PaginaConfiguracion() {
   const disponibleCalc = ingreso - diezmoCalc;
   const necCalc = disponibleCalc * cfg.metaNecesidadesPct;
   const desCalc = disponibleCalc * cfg.metaDeseosPct;
+  const deudaCalc = disponibleCalc * cfg.metaDeudaPct;
   const ahorCalc = disponibleCalc * cfg.metaAhorroPct;
 
   return (
@@ -66,15 +68,19 @@ export default function PaginaConfiguracion() {
 
       <form onSubmit={enviar} className="space-y-6">
         <Card>
-          <CardHeader><CardTitle>Regla 50/30/20</CardTitle></CardHeader>
+          <CardHeader><CardTitle>Metas por pilar</CardTitle></CardHeader>
           <CardContent className="space-y-3">
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div className="space-y-1.5"><Label>Necesidades %</Label><Input type="number" value={pct(cfg.metaNecesidadesPct)} onChange={(e) => setCfg({ ...cfg, metaNecesidadesPct: pctNum(e.target.value) })} /></div>
               <div className="space-y-1.5"><Label>Deseos %</Label><Input type="number" value={pct(cfg.metaDeseosPct)} onChange={(e) => setCfg({ ...cfg, metaDeseosPct: pctNum(e.target.value) })} /></div>
+              <div className="space-y-1.5"><Label>Deuda %</Label><Input type="number" value={pct(cfg.metaDeudaPct)} onChange={(e) => setCfg({ ...cfg, metaDeudaPct: pctNum(e.target.value) })} /></div>
               <div className="space-y-1.5"><Label>Ahorro %</Label><Input type="number" value={pct(cfg.metaAhorroPct)} onChange={(e) => setCfg({ ...cfg, metaAhorroPct: pctNum(e.target.value) })} /></div>
             </div>
             <p className={`text-sm font-medium ${sumaOk ? "text-emerald-600" : "text-red-600"}`}>
               Suma: {sumaPct}% {sumaOk ? "✅" : "⚠ debe ser 100%"}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Si no tienes deudas, deja Deuda % en 0 y reparte el resto entre los otros tres.
             </p>
           </CardContent>
         </Card>
@@ -151,6 +157,12 @@ export default function PaginaConfiguracion() {
               <span>🎮 Deseos ({pct(cfg.metaDeseosPct)}%)</span>
               <span>{formatoMoneda(desCalc)}</span>
             </div>
+            {cfg.metaDeudaPct > 0 && (
+              <div className="flex justify-between py-1 text-orange-600 dark:text-orange-400">
+                <span>💳 Deuda ({pct(cfg.metaDeudaPct)}%)</span>
+                <span>{formatoMoneda(deudaCalc)}</span>
+              </div>
+            )}
             <div className="flex justify-between py-1 text-emerald-600 dark:text-emerald-400">
               <span>💰 Ahorro ({pct(cfg.metaAhorroPct)}%)</span>
               <span>{formatoMoneda(ahorCalc)}</span>

@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { RutaProtegida } from "@/autenticacion/RutaProtegida";
 import { Layout } from "@/components/Layout";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import PaginaInicioSesion from "@/paginas/PaginaInicioSesion";
 import PaginaRegistro from "@/paginas/PaginaRegistro";
 import PaginaPanel from "@/paginas/PaginaPanel";
@@ -25,23 +26,25 @@ function Protegida({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/login" element={<PaginaInicioSesion />} />
-      <Route path="/registro" element={<PaginaRegistro />} />
+    <ErrorBoundary>
+      <Routes>
+        <Route path="/login" element={<PaginaInicioSesion />} />
+        <Route path="/registro" element={<PaginaRegistro />} />
 
-      <Route path="/"              element={<Protegida><PaginaPanel /></Protegida>} />
-      <Route path="/movimientos"   element={<Protegida><PaginaMovimientos /></Protegida>} />
-      <Route path="/ingresos"      element={<Protegida><PaginaIngresos /></Protegida>} />
-      <Route path="/presupuesto"   element={<Protegida><PaginaPresupuesto /></Protegida>} />
-      <Route path="/cuentas"       element={<Protegida><PaginaCuentas /></Protegida>} />
-      <Route path="/deudas"        element={<Protegida><PaginaDeudas /></Protegida>} />
-      <Route path="/metas"         element={<Protegida><PaginaMetas /></Protegida>} />
-      <Route path="/patrimonio"    element={<Protegida><PaginaPatrimonio /></Protegida>} />
-      <Route path="/categorias"    element={<Protegida><PaginaCategorias /></Protegida>} />
-      <Route path="/configuracion" element={<Protegida><PaginaConfiguracion /></Protegida>} />
-      <Route path="/tendencias"    element={<Protegida><PaginaTendencias /></Protegida>} />
+        <Route path="/"              element={<Protegida><PaginaPanel /></Protegida>} />
+        <Route path="/movimientos"   element={<Protegida><PaginaMovimientos /></Protegida>} />
+        <Route path="/ingresos"      element={<Protegida><PaginaIngresos /></Protegida>} />
+        <Route path="/presupuesto"   element={<Protegida><PaginaPresupuesto /></Protegida>} />
+        <Route path="/cuentas"       element={<Protegida><PaginaCuentas /></Protegida>} />
+        <Route path="/deudas"        element={<Protegida><PaginaDeudas /></Protegida>} />
+        <Route path="/metas"         element={<Protegida><PaginaMetas /></Protegida>} />
+        <Route path="/patrimonio"    element={<Protegida><PaginaPatrimonio /></Protegida>} />
+        <Route path="/categorias"    element={<Protegida><PaginaCategorias /></Protegida>} />
+        <Route path="/configuracion" element={<Protegida><PaginaConfiguracion /></Protegida>} />
+        <Route path="/tendencias"    element={<Protegida><PaginaTendencias /></Protegida>} />
 
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </ErrorBoundary>
   );
 }

@@ -36,6 +36,7 @@ public class ConfigController : ControllerBase
         c.DiezmoPct = dto.DiezmoPct;
         c.MetaNecesidadesPct = dto.MetaNecesidadesPct;
         c.MetaDeseosPct = dto.MetaDeseosPct;
+        c.MetaDeudaPct = dto.MetaDeudaPct;
         c.MetaAhorroPct = dto.MetaAhorroPct;
         c.FondoEmergenciaMeses = dto.FondoEmergenciaMeses;
         c.MetaAhorroMinimoPct = dto.MetaAhorroMinimoPct;
@@ -52,6 +53,7 @@ public class ConfigController : ControllerBase
         DiezmoPct = c.DiezmoPct,
         MetaNecesidadesPct = c.MetaNecesidadesPct,
         MetaDeseosPct = c.MetaDeseosPct,
+        MetaDeudaPct = c.MetaDeudaPct,
         MetaAhorroPct = c.MetaAhorroPct,
         FondoEmergenciaMeses = c.FondoEmergenciaMeses,
         MetaAhorroMinimoPct = c.MetaAhorroMinimoPct,

@@ -84,19 +84,24 @@
             <Label Text="🎯 Distribución del disponible (%)" Style="{StaticResource H2}" />
             <Border Style="{StaticResource Card}">
                 <VerticalStackLayout Spacing="10">
-                    <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="4">
+                    <Grid ColumnDefinitions="*,*,*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="4">
                         <Label Grid.Row="0" Grid.Column="0" Text="🏠 Necesidades" Style="{StaticResource Muted}" />
                         <Label Grid.Row="0" Grid.Column="1" Text="🎉 Deseos" Style="{StaticResource Muted}" />
-                        <Label Grid.Row="0" Grid.Column="2" Text="💰 Ahorro" Style="{StaticResource Muted}" />
+                        <Label Grid.Row="0" Grid.Column="2" Text="💳 Deuda" Style="{StaticResource Muted}" />
+                        <Label Grid.Row="0" Grid.Column="3" Text="💰 Ahorro" Style="{StaticResource Muted}" />
                         <Entry Grid.Row="1" Grid.Column="0" Text="{Binding MetaNecText}" Keyboard="Numeric" Placeholder="50" />
                         <Entry Grid.Row="1" Grid.Column="1" Text="{Binding MetaDesText}" Keyboard="Numeric" Placeholder="30" />
-                        <Entry Grid.Row="1" Grid.Column="2" Text="{Binding MetaAhoText}" Keyboard="Numeric" Placeholder="20" />
+                        <Entry Grid.Row="1" Grid.Column="2" Text="{Binding MetaDeuText}" Keyboard="Numeric" Placeholder="0" />
+                        <Entry Grid.Row="1" Grid.Column="3" Text="{Binding MetaAhoText}" Keyboard="Numeric" Placeholder="20" />
                         <Label Grid.Row="2" Grid.Column="0" Text="{Binding MetaNecAmount}" Style="{StaticResource Muted}" TextColor="#0F766E" />
                         <Label Grid.Row="2" Grid.Column="1" Text="{Binding MetaDesAmount}" Style="{StaticResource Muted}" TextColor="#0F766E" />
-                        <Label Grid.Row="2" Grid.Column="2" Text="{Binding MetaAhoAmount}" Style="{StaticResource Muted}" TextColor="#0F766E" />
+                        <Label Grid.Row="2" Grid.Column="2" Text="{Binding MetaDeuAmount}" Style="{StaticResource Muted}" TextColor="#0F766E" />
+                        <Label Grid.Row="2" Grid.Column="3" Text="{Binding MetaAhoAmount}" Style="{StaticResource Muted}" TextColor="#0F766E" />
                     </Grid>
                     <Label Text="{Binding SumaMetasLabel}" Style="{StaticResource Muted}"
                            TextColor="{Binding SumaMetasColor}" />
+                    <Label Text="Si no tienes deudas, deja Deuda en 0 y reparte el resto entre los otros tres."
+                           Style="{StaticResource Muted}" FontSize="11" />
                 </VerticalStackLayout>
             </Border>
 

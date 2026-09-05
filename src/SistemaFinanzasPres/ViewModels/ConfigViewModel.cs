@@ -34,10 +34,12 @@ public partial class ConfigViewModel : BaseViewModel
 
     [ObservableProperty] private string metaNecText = "50";
     [ObservableProperty] private string metaDesText = "30";
+    [ObservableProperty] private string metaDeuText = "0";
     [ObservableProperty] private string metaAhoText = "20";
 
     [ObservableProperty] private string metaNecAmount = "$0";
     [ObservableProperty] private string metaDesAmount = "$0";
+    [ObservableProperty] private string metaDeuAmount = "$0";
     [ObservableProperty] private string metaAhoAmount = "$0";
     [ObservableProperty] private string sumaMetasLabel = "Suma: 100%";
     [ObservableProperty] private Color sumaMetasColor = Color.FromArgb("#10B981");
@@ -62,6 +64,7 @@ public partial class ConfigViewModel : BaseViewModel
         DiezmoPctText = (cfg.DiezmoPct * 100m).ToString("0.##");
         MetaNecText = (cfg.MetaNecesidadesPct * 100m).ToString("0.##");
         MetaDesText = (cfg.MetaDeseosPct * 100m).ToString("0.##");
+        MetaDeuText = (cfg.MetaDeudaPct * 100m).ToString("0.##");
         MetaAhoText = (cfg.MetaAhorroPct * 100m).ToString("0.##");
         FondoMeses = cfg.FondoEmergenciaMeses;
         AhorroMinPctText = (cfg.MetaAhorroMinimoPct * 100m).ToString("0.##");
@@ -83,6 +86,7 @@ public partial class ConfigViewModel : BaseViewModel
     partial void OnDiezmoPctTextChanged(string value) => RecalcLabels();
     partial void OnMetaNecTextChanged(string value) => RecalcLabels();
     partial void OnMetaDesTextChanged(string value) => RecalcLabels();
+    partial void OnMetaDeuTextChanged(string value) => RecalcLabels();
     partial void OnMetaAhoTextChanged(string value) => RecalcLabels();
 
     private void RecalcLabels()
@@ -95,11 +99,13 @@ public partial class ConfigViewModel : BaseViewModel
 
         decimal.TryParse(MetaNecText, out var pnec);
         decimal.TryParse(MetaDesText, out var pdes);
+        decimal.TryParse(MetaDeuText, out var pdeu);
         decimal.TryParse(MetaAhoText, out var paho);
         MetaNecAmount = (disp * pnec / 100m).ToString("C0");
         MetaDesAmount = (disp * pdes / 100m).ToString("C0");
+        MetaDeuAmount = (disp * pdeu / 100m).ToString("C0");
         MetaAhoAmount = (disp * paho / 100m).ToString("C0");
-        var suma = pnec + pdes + paho;
+        var suma = pnec + pdes + pdeu + paho;
         SumaMetasLabel = $"Suma: {suma}% {(suma == 100m ? "✅" : suma < 100m ? "— faltan " + (100 - suma) + "%" : "⚠️ excede 100%")}";
         SumaMetasColor = suma == 100m ? Color.FromArgb("#10B981") : Color.FromArgb("#EF4444");
     }
@@ -143,6 +149,7 @@ public partial class ConfigViewModel : BaseViewModel
         if (decimal.TryParse(DiezmoPctText, out var dp)) cfg.DiezmoPct = dp / 100m;
         if (decimal.TryParse(MetaNecText, out var mn)) cfg.MetaNecesidadesPct = mn / 100m;
         if (decimal.TryParse(MetaDesText, out var md)) cfg.MetaDeseosPct = md / 100m;
+        if (decimal.TryParse(MetaDeuText, out var mdeu)) cfg.MetaDeudaPct = mdeu / 100m;
         if (decimal.TryParse(MetaAhoText, out var ma)) cfg.MetaAhorroPct = ma / 100m;
         cfg.FondoEmergenciaMeses = FondoMeses;
         if (decimal.TryParse(AhorroMinPctText, out var amin)) cfg.MetaAhorroMinimoPct = amin / 100m;

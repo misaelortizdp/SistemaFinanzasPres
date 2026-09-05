@@ -33,6 +33,7 @@ public class KpiService
         var ahorroPilar = snap.Pillars.First(p => p.Pillar == Pillar.Ahorro);
         var necPilar = snap.Pillars.First(p => p.Pillar == Pillar.Necesidad);
         var desPilar = snap.Pillars.First(p => p.Pillar == Pillar.Deseo);
+        var deudaPilar = snap.Pillars.First(p => p.Pillar == Pillar.Deuda);
 
         var tasaAhorro = snap.IngresoDisponible > 0 ? ahorroPilar.Spent / snap.IngresoDisponible : 0m;
 
@@ -123,6 +124,17 @@ public class KpiService
             "🔴 Por construir";
 
         var fondo = new FondoEmergenciaInfo(gastosFijos, cfg.FondoEmergenciaMeses, metaFondo, fondoBalance, avance, fondoStatus);
+
+        if (deudaPilar.MetaPct > 0 || deudaPilar.Spent > 0)
+        {
+            rows.Add(new KpiRow(
+                "💳 % Gasto en Deuda",
+                deudaPilar.PercentOfIncomeBase.ToString("P1"),
+                deudaPilar.MetaPct.ToString("P0"),
+                deudaPilar.PercentOfIncomeBase <= deudaPilar.MetaPct ? "✅ OK" : "🔴 Sobre meta",
+                "Pago de deudas sobre ingreso disponible (sin diezmo). Menor es mejor.",
+                (double)Math.Min(1m, deudaPilar.MetaPct > 0 ? deudaPilar.PercentOfIncomeBase / deudaPilar.MetaPct : 0m)));
+        }
 
         var debtTotal = await _db.Debts.AsNoTracking()
             .Where(d => d.IsActive)
