@@ -11,6 +11,7 @@ public class AppConfig
 
     public decimal MetaNecesidadesPct { get; set; } = 0.50m;
     public decimal MetaDeseosPct { get; set; } = 0.30m;
+    public decimal MetaDeudaPct { get; set; } = 0m;
     public decimal MetaAhorroPct { get; set; } = 0.20m;
 
     public int FondoEmergenciaMeses { get; set; } = 4;

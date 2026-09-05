@@ -6,6 +6,7 @@ public enum Pillar
     Necesidad = 1,
     Deseo = 2,
     Ahorro = 3,
+    Deuda = 4,
 }
 
 public static class PillarExtensions
@@ -16,6 +17,7 @@ public static class PillarExtensions
         Pillar.Necesidad => "🏠 Necesidad",
         Pillar.Deseo => "🎉 Deseo",
         Pillar.Ahorro => "💰 Ahorro",
+        Pillar.Deuda => "💳 Deuda",
         _ => p.ToString(),
     };
 
@@ -25,6 +27,7 @@ public static class PillarExtensions
         Pillar.Necesidad => "🏠 Nec.",
         Pillar.Deseo => "🎉 Des.",
         Pillar.Ahorro => "💰 Aho.",
+        Pillar.Deuda => "💳 Deu.",
         _ => p.ToString(),
     };
 }

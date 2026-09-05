@@ -26,6 +26,7 @@ public class PillarToColorConverter : IValueConverter
         var s = value?.ToString() ?? string.Empty;
         if (s.Contains("Necesidad") || s.Contains("Nec."))  return Color.FromArgb("#DBEAFE");
         if (s.Contains("Deseo")     || s.Contains("Des."))  return Color.FromArgb("#FFF0F6");
+        if (s.Contains("Deuda")     || s.Contains("Deu."))  return Color.FromArgb("#FFEDD5");
         if (s.Contains("Ahorro")    || s.Contains("Aho."))  return Color.FromArgb("#D1FAE5");
         if (s.Contains("Primer")    || s.Contains("P.F."))  return Color.FromArgb("#FEF3C7");
         return Color.FromArgb("#F1F5F9");

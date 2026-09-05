@@ -40,6 +40,7 @@ public class AppDbContext : DbContext
         b.Entity<AppConfig>().Property(x => x.OtrosIngresos).HasConversion<double>();
         b.Entity<AppConfig>().Property(x => x.MetaNecesidadesPct).HasConversion<double>();
         b.Entity<AppConfig>().Property(x => x.MetaDeseosPct).HasConversion<double>();
+        b.Entity<AppConfig>().Property(x => x.MetaDeudaPct).HasConversion<double>();
         b.Entity<AppConfig>().Property(x => x.MetaAhorroPct).HasConversion<double>();
         b.Entity<AppConfig>().Property(x => x.MetaAhorroMinimoPct).HasConversion<double>();
         b.Entity<AppConfig>().Property(x => x.MetaAhorroOptimoPct).HasConversion<double>();
