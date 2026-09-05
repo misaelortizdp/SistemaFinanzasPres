@@ -63,6 +63,7 @@ public class KpisPanelDto
     public int FondoEmergenciaMeses { get; set; }
     public decimal TotalDeudas { get; set; }
     public int DeudasActivas { get; set; }
+    public List<string> Sugerencias { get; set; } = [];
 }
 
 public class TendenciaDetalleDto

@@ -44,6 +44,7 @@ interface Kpis {
   tasaAhorroPct: number; ahorroMensual: number;
   fondoEmergenciaActual: number; fondoEmergenciaMeta: number; fondoEmergenciaMeses: number;
   totalDeudas: number; deudasActivas: number;
+  sugerencias: string[];
 }
 interface Config {
   metaNecesidadesPct: number
@@ -149,6 +150,25 @@ export default function PaginaPanel() {
         <h1 className="text-3xl font-bold">Hola, {usuario?.nombre} 👋</h1>
         <p className="text-muted-foreground">{NOMBRES_MES[mes - 1]} {anio}</p>
       </header>
+
+      {/* Sugerencias accionables */}
+      {kpis && kpis.sugerencias.length > 0 && (
+        <Card className="border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/20">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">💡 Sugerencias</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-1.5 text-sm">
+              {kpis.sugerencias.map((s, i) => (
+                <li key={i} className="flex gap-2">
+                  <span>⚠️</span>
+                  <span>{s}</span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Fila 1: KPI cards principales */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
