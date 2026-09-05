@@ -8,7 +8,6 @@ import PaginaPanel from "@/paginas/PaginaPanel";
 import PaginaCategorias from "@/paginas/PaginaCategorias";
 import PaginaCuentas from "@/paginas/PaginaCuentas";
 import PaginaMovimientos from "@/paginas/PaginaMovimientos";
-import PaginaIngresos from "@/paginas/PaginaIngresos";
 import PaginaPresupuesto from "@/paginas/PaginaPresupuesto";
 import PaginaDeudas from "@/paginas/PaginaDeudas";
 import PaginaMetas from "@/paginas/PaginaMetas";
@@ -33,7 +32,6 @@ export default function App() {
 
         <Route path="/"              element={<Protegida><PaginaPanel /></Protegida>} />
         <Route path="/movimientos"   element={<Protegida><PaginaMovimientos /></Protegida>} />
-        <Route path="/ingresos"      element={<Protegida><PaginaIngresos /></Protegida>} />
         <Route path="/presupuesto"   element={<Protegida><PaginaPresupuesto /></Protegida>} />
         <Route path="/cuentas"       element={<Protegida><PaginaCuentas /></Protegida>} />
         <Route path="/deudas"        element={<Protegida><PaginaDeudas /></Protegida>} />

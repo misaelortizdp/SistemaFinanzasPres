@@ -125,6 +125,7 @@ using (var scope = app.Services.CreateScope())
 {
     var bd = scope.ServiceProvider.GetRequiredService<BaseDatosContexto>();
     bd.Database.EnsureCreated();
+    await MigrarIngresosAMovimientosAsync(bd);
 }
 
 if (app.Environment.IsDevelopment())
@@ -155,3 +156,45 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+// Migración de una sola vez: Ingreso (tabla separada, ya no se usa) → Movimiento
+// con categoría de pilar Ingreso. Idempotente — una vez migradas, la tabla Ingresos
+// queda vacía y esto no vuelve a hacer nada en arranques posteriores. El saldo de
+// Cuenta no se toca aquí: ya quedó reflejado cuando el Ingreso original se creó.
+static async Task MigrarIngresosAMovimientosAsync(BaseDatosContexto bd)
+{
+    var ingresosPendientes = await bd.Ingresos.ToListAsync();
+    if (ingresosPendientes.Count == 0) return;
+
+    var categoriasIngreso = await bd.Categorias
+        .Where(c => c.Tipo == TipoCategoria.Ingreso)
+        .ToListAsync();
+
+    foreach (var grupo in ingresosPendientes.GroupBy(i => i.UsuarioId))
+    {
+        var categoriasUsuario = categoriasIngreso.Where(c => c.UsuarioId == grupo.Key).ToList();
+        var categoriaOtros = categoriasUsuario.FirstOrDefault(c => c.Nombre == "Otros")
+            ?? categoriasUsuario.FirstOrDefault();
+        if (categoriaOtros == null) continue; // usuario sin categoría de pilar Ingreso — no debería pasar
+
+        foreach (var ingreso in grupo)
+        {
+            var categoria = categoriasUsuario.FirstOrDefault(c =>
+                string.Equals(c.Nombre, ingreso.Fuente, StringComparison.OrdinalIgnoreCase)) ?? categoriaOtros;
+
+            bd.Movimientos.Add(new Movimiento
+            {
+                UsuarioId = ingreso.UsuarioId,
+                Fecha = ingreso.Fecha,
+                Concepto = ingreso.Concepto,
+                CategoriaId = categoria.Id,
+                CuentaId = ingreso.CuentaId,
+                Monto = ingreso.Monto,
+                Notas = ingreso.Notas,
+            });
+        }
+    }
+
+    bd.Ingresos.RemoveRange(ingresosPendientes);
+    await bd.SaveChangesAsync();
+}

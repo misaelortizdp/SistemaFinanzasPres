@@ -25,15 +25,15 @@ public class PanelController : ControllerBase
         var fechaInicio = new DateTime(hace5.Year, hace5.Month, 1, 0, 0, 0, DateTimeKind.Utc);
 
         var gastosMes = await _bd.Movimientos
-            .Where(m => m.UsuarioId == uid && m.Fecha >= fechaInicio)
+            .Where(m => m.UsuarioId == uid && m.Fecha >= fechaInicio && m.Categoria!.Tipo != TipoCategoria.Ingreso)
             .GroupBy(m => new { m.Fecha.Year, m.Fecha.Month })
             .Select(g => new { g.Key.Year, g.Key.Month, Total = g.Sum(m => m.Monto) })
             .ToListAsync();
 
-        var ingresosMes = await _bd.Ingresos
-            .Where(i => i.UsuarioId == uid && i.Fecha >= fechaInicio)
-            .GroupBy(i => new { i.Fecha.Year, i.Fecha.Month })
-            .Select(g => new { g.Key.Year, g.Key.Month, Total = g.Sum(i => i.Monto) })
+        var ingresosMes = await _bd.Movimientos
+            .Where(m => m.UsuarioId == uid && m.Fecha >= fechaInicio && m.Categoria!.Tipo == TipoCategoria.Ingreso)
+            .GroupBy(m => new { m.Fecha.Year, m.Fecha.Month })
+            .Select(g => new { g.Key.Year, g.Key.Month, Total = g.Sum(m => m.Monto) })
             .ToListAsync();
 
         var tendencia = Enumerable.Range(0, 6)
@@ -59,6 +59,7 @@ public class PanelController : ControllerBase
             }).ToListAsync();
 
         var gastosPorCategoria = movMes
+            .Where(m => m.TipoCat != TipoCategoria.Ingreso)
             .GroupBy(m => new { m.CategoriaId, m.NombreCat, m.ColorCat, m.IconoCat })
             .Select(g => new GastoCategoriaPanelDto
             {
@@ -70,9 +71,7 @@ public class PanelController : ControllerBase
             .OrderByDescending(g => g.Monto)
             .ToList();
 
-        var ingresosActual = await _bd.Ingresos
-            .Where(i => i.UsuarioId == uid && i.Fecha.Year == anioActual && i.Fecha.Month == mesActual)
-            .SumAsync(i => i.Monto);
+        var ingresosActual = movMes.Where(m => m.TipoCat == TipoCategoria.Ingreso).Sum(m => m.Monto);
 
         var config = await _bd.ConfigUsuarios
             .AsNoTracking()
@@ -101,7 +100,7 @@ public class PanelController : ControllerBase
         // Proyección de gasto al fin de mes
         var diasTotales = DateTime.DaysInMonth(anioActual, mesActual);
         var diasTranscurridos = Math.Max(1, hoy.Day);
-        var gastoActual = movMes.Sum(m => m.Monto);
+        var gastoActual = movMes.Where(m => m.TipoCat != TipoCategoria.Ingreso).Sum(m => m.Monto);
         var tasaQuema = diasTranscurridos > 0 ? gastoActual / diasTranscurridos : 0;
         var gastoProyectado = Math.Round(tasaQuema * diasTotales, 2);
         var presupuestoDiario = diasTotales > 0
@@ -146,19 +145,16 @@ public class PanelController : ControllerBase
         var ahorPct = config?.MetaAhorroPct ?? 0.20m;
         var fondoMeses = config?.FondoEmergenciaMeses ?? 4;
 
-        var totalIngresos = await _bd.Ingresos
-            .Where(i => i.UsuarioId == uid && i.Fecha.Year == anioActual && i.Fecha.Month == mesActual)
-            .SumAsync(i => i.Monto);
-
-        var diezmoMonto = Math.Round(totalIngresos * diezmoPct, 2);
-        var ingresoDisponible = totalIngresos - diezmoMonto;
-
         var movMes = await _bd.Movimientos
             .Where(m => m.UsuarioId == uid && m.Fecha.Year == anioActual && m.Fecha.Month == mesActual)
             .Select(m => new { m.Monto, TipoCat = m.Categoria!.Tipo })
             .ToListAsync();
 
-        var totalGastos = movMes.Sum(m => m.Monto);
+        var totalIngresos = movMes.Where(m => m.TipoCat == TipoCategoria.Ingreso).Sum(m => m.Monto);
+        var diezmoMonto = Math.Round(totalIngresos * diezmoPct, 2);
+        var ingresoDisponible = totalIngresos - diezmoMonto;
+
+        var totalGastos = movMes.Where(m => m.TipoCat != TipoCategoria.Ingreso).Sum(m => m.Monto);
         var necesidades = movMes.Where(m => m.TipoCat == TipoCategoria.Necesidad).Sum(m => m.Monto);
         var deseos = movMes.Where(m => m.TipoCat == TipoCategoria.Deseo).Sum(m => m.Monto);
         var deudaPagada = movMes.Where(m => m.TipoCat == TipoCategoria.Deuda).Sum(m => m.Monto);
@@ -226,15 +222,15 @@ public class PanelController : ControllerBase
         var diezmoPct = config?.DiezmoPct ?? 0m;
 
         var gastosMes = await _bd.Movimientos
-            .Where(m => m.UsuarioId == uid && m.Fecha >= fechaInicio)
+            .Where(m => m.UsuarioId == uid && m.Fecha >= fechaInicio && m.Categoria!.Tipo != TipoCategoria.Ingreso)
             .GroupBy(m => new { m.Fecha.Year, m.Fecha.Month })
             .Select(g => new { g.Key.Year, g.Key.Month, Total = g.Sum(m => m.Monto) })
             .ToListAsync();
 
-        var ingresosMes = await _bd.Ingresos
-            .Where(i => i.UsuarioId == uid && i.Fecha >= fechaInicio)
-            .GroupBy(i => new { i.Fecha.Year, i.Fecha.Month })
-            .Select(g => new { g.Key.Year, g.Key.Month, Total = g.Sum(i => i.Monto) })
+        var ingresosMes = await _bd.Movimientos
+            .Where(m => m.UsuarioId == uid && m.Fecha >= fechaInicio && m.Categoria!.Tipo == TipoCategoria.Ingreso)
+            .GroupBy(m => new { m.Fecha.Year, m.Fecha.Month })
+            .Select(g => new { g.Key.Year, g.Key.Month, Total = g.Sum(m => m.Monto) })
             .ToListAsync();
 
         var meses = Enumerable.Range(0, 6)
