@@ -100,11 +100,26 @@ public class BudgetService
             var b = esAutomatico ? pagoDeuda : budgetByCat.GetValueOrDefault(c.Id);
             var s = spentByCat.GetValueOrDefault(c.Id);
             var pct = b > 0 ? s / b : 0m;
-            string status =
-                s == 0 ? "⬜ Sin gastos" :
-                pct > 1m ? "🔴 Excedido" :
-                pct > 0.85m ? "🟡 Alerta" :
-                "🟢 OK";
+
+            // Ahorro es una meta mínima a alcanzar (más es mejor); el resto de categorías
+            // tienen un tope a no pasar (menos es mejor) — se invierte solo para Ahorro.
+            string status;
+            if (c.Pillar == Pillar.Ahorro)
+            {
+                status = s == 0 ? "⬜ Sin aportes" :
+                         b == 0 ? "🟢 OK" :
+                         pct >= 1m ? "🟢 Meta cumplida" :
+                         pct >= 0.85m ? "🟡 Cerca de la meta" :
+                         "🔴 Bajo meta";
+            }
+            else
+            {
+                status =
+                    s == 0 ? "⬜ Sin gastos" :
+                    pct > 1m ? "🔴 Excedido" :
+                    pct > 0.85m ? "🟡 Alerta" :
+                    "🟢 OK";
+            }
             return new CategoryStatus(c.Id, c.Name, c.Pillar, b, s, b - s, pct, status, esAutomatico);
         }).ToList();
 
