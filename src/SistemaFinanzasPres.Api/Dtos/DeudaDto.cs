@@ -13,11 +13,15 @@ public class DeudaDto
     public decimal SaldoActual { get; set; }
     public decimal TasaInteres { get; set; }
     public decimal PagoMinimo { get; set; }
+    public decimal AbonoExtra { get; set; }
     public int DiaPago { get; set; } = 1;
     public bool Activa { get; set; } = true;
 
     [MaxLength(500)]
     public string? Notas { get; set; }
+
+    // Informativo — la categoría se gestiona sola, el cliente no la envía.
+    public int? CategoriaId { get; set; }
 }
 
 public class PagoDeudaDto

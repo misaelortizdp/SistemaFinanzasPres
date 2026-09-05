@@ -18,6 +18,7 @@ public class Deuda
 
     public decimal TasaInteres { get; set; }
     public decimal PagoMinimo { get; set; }
+    public decimal AbonoExtra { get; set; }
 
     public int DiaPago { get; set; } = 1;
 
@@ -26,4 +27,10 @@ public class Deuda
 
     [MaxLength(500)]
     public string? Notas { get; set; }
+
+    // Categoría de presupuesto vinculada — se crea/renombra sola junto con la deuda
+    // (ver DeudasController). Su presupuesto mensual se calcula desde PagoMinimo+AbonoExtra,
+    // no se edita a mano (ver PresupuestoController).
+    public int? CategoriaId { get; set; }
+    public Categoria? Categoria { get; set; }
 }

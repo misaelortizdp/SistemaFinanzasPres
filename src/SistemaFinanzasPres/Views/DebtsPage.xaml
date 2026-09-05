@@ -53,7 +53,7 @@
                                         Command="{Binding BindingContext.EditCommand, Source={x:Reference pageRoot}}"
                                         CommandParameter="{Binding .}" />
                                 </Border.GestureRecognizers>
-                                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="2">
+                                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="2">
                                     <Label Grid.Row="0" Grid.Column="0" Text="{Binding Name}" FontAttributes="Bold" Style="{StaticResource Body}" />
                                     <Label Grid.Row="0" Grid.Column="1" Text="{Binding BalanceLabel}" FontAttributes="Bold" Style="{StaticResource Body}" TextColor="#B91C1C" />
                                     <Label Grid.Row="1" Grid.Column="0" Style="{StaticResource Muted}">
@@ -71,9 +71,10 @@
                                             </MultiBinding>
                                         </Label.Text>
                                     </Label>
-                                    <ProgressBar Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
+                                    <Label Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Text="{Binding PresupuestoLabel}" Style="{StaticResource Muted}" FontSize="11" />
+                                    <ProgressBar Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
                                                  Progress="{Binding Progress}" ProgressColor="#10B981" />
-                                    <Label Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Text="{Binding StatusLabel}"
+                                    <Label Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" Text="{Binding StatusLabel}"
                                            Style="{StaticResource Muted}" TextColor="#10B981" />
                                 </Grid>
                             </Border>

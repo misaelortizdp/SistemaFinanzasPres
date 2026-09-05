@@ -29,6 +29,14 @@ public class PresupuestoController : ControllerBase
             .Select(g => new { CategoriaId = g.Key, Total = g.Sum(m => m.Monto) })
             .ToDictionaryAsync(x => x.CategoriaId, x => x.Total);
 
+        // Deudas activas vinculadas a una categoría: su presupuesto se calcula solo
+        // (PagoMinimo + AbonoExtra) — no se guarda a mano en LineasPresupuesto.
+        var deudasActivas = await _bd.Deudas.AsNoTracking()
+            .Where(d => d.UsuarioId == uid && d.Activa && d.CategoriaId != null)
+            .Include(d => d.Categoria)
+            .ToListAsync();
+        var deudaPorCategoria = deudasActivas.ToDictionary(d => d.CategoriaId!.Value);
+
         var datos = lineas.Select(l => new LineaPresupuestoDto
         {
             Id = l.Id,
@@ -36,17 +44,41 @@ public class PresupuestoController : ControllerBase
             NombreCategoria = l.Categoria?.Nombre,
             Anio = l.Anio,
             Mes = l.Mes,
-            Monto = l.Monto,
+            Monto = deudaPorCategoria.TryGetValue(l.CategoriaId, out var deudaLinea)
+                ? deudaLinea.PagoMinimo + deudaLinea.AbonoExtra : l.Monto,
             Ejecutado = ejecutado.TryGetValue(l.CategoriaId, out var v) ? v : 0m,
-        }).OrderBy(x => x.NombreCategoria).ToList();
+            EsAutomatico = deudaPorCategoria.ContainsKey(l.CategoriaId),
+        }).ToList();
 
-        return Ok(datos);
+        // Deudas cuya categoría todavía no tiene fila de presupuesto este mes
+        // (recién creada, o mes sin "copiar mes anterior") — se sintetiza igual.
+        var categoriasYaListadas = datos.Select(x => x.CategoriaId).ToHashSet();
+        foreach (var d in deudasActivas.Where(d => !categoriasYaListadas.Contains(d.CategoriaId!.Value)))
+        {
+            datos.Add(new LineaPresupuestoDto
+            {
+                CategoriaId = d.CategoriaId!.Value,
+                NombreCategoria = d.Categoria?.Nombre,
+                Anio = anio,
+                Mes = mes,
+                Monto = d.PagoMinimo + d.AbonoExtra,
+                Ejecutado = ejecutado.TryGetValue(d.CategoriaId.Value, out var v2) ? v2 : 0m,
+                EsAutomatico = true,
+            });
+        }
+
+        return Ok(datos.OrderBy(x => x.NombreCategoria).ToList());
     }
 
     [HttpPut]
     public async Task<ActionResult<LineaPresupuestoDto>> GuardarLinea([FromBody] LineaPresupuestoDto dto)
     {
         var uid = User.ObtenerId();
+
+        var esDeDeuda = await _bd.Deudas.AnyAsync(d => d.UsuarioId == uid && d.Activa && d.CategoriaId == dto.CategoriaId);
+        if (esDeDeuda)
+            return BadRequest(new { error = "El presupuesto de esta categoría se calcula automáticamente desde la deuda vinculada (pago mínimo + abono extra)." });
+
         var linea = await _bd.LineasPresupuesto.FirstOrDefaultAsync(
             l => l.UsuarioId == uid && l.Anio == dto.Anio && l.Mes == dto.Mes && l.CategoriaId == dto.CategoriaId);
 
