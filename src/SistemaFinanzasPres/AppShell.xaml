@@ -13,6 +13,8 @@
                       ContentTemplate="{DataTemplate views:MovementsPage}" Route="movements" />
         <ShellContent Title="Presupuesto" Icon="budget.png"
                       ContentTemplate="{DataTemplate views:BudgetPage}" Route="budget" />
+        <ShellContent Title="Deudas" Icon="debts.png"
+                      ContentTemplate="{DataTemplate views:DebtsPage}" Route="debts" />
         <ShellContent Title="Config" Icon="more.png"
                       ContentTemplate="{DataTemplate views:ConfigPage}" Route="config" />
     </TabBar>
