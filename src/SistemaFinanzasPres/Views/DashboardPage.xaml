@@ -3,7 +3,9 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:SistemaFinanzasPres.ViewModels"
              xmlns:conv="clr-namespace:SistemaFinanzasPres.Converters"
+             xmlns:models="clr-namespace:SistemaFinanzasPres.Models"
              x:Class="SistemaFinanzasPres.Views.DashboardPage"
+             x:Name="pageRoot"
              x:DataType="vm:DashboardViewModel"
              Title="Dashboard">
 
@@ -14,6 +16,7 @@
         </ResourceDictionary>
     </ContentPage.Resources>
 
+    <Grid>
     <RefreshView IsRefreshing="{Binding IsBusy}" Command="{Binding LoadCommand}">
     <ScrollView>
         <VerticalStackLayout Padding="14" Spacing="12">
@@ -183,4 +186,60 @@
         </VerticalStackLayout>
     </ScrollView>
     </RefreshView>
+
+        <!-- Botón de acción rápida: registrar un gasto sin salir del Dashboard -->
+        <Button Text="+"
+                Command="{Binding AbrirQuickAddCommand}"
+                HorizontalOptions="End" VerticalOptions="End"
+                Margin="0,0,20,28"
+                WidthRequest="60" HeightRequest="60" CornerRadius="30"
+                FontSize="28" Padding="0"
+                BackgroundColor="#0F766E" TextColor="White" />
+
+        <!-- Modal de gasto rápido -->
+        <Grid BackgroundColor="#80000000" IsVisible="{Binding QuickAddAbierto}">
+            <Border Style="{StaticResource Card}" Margin="20" VerticalOptions="Center">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="💸 Gasto rápido" Style="{StaticResource H2}" />
+
+                    <Label Text="Monto" Style="{StaticResource Muted}" />
+                    <Entry Placeholder="0" Keyboard="Numeric" Text="{Binding QuickMontoText}" FontSize="22" />
+
+                    <Label Text="Categoría" Style="{StaticResource Muted}" Margin="0,4,0,0" />
+                    <CollectionView ItemsSource="{Binding QuickCategoriasRecientes}" SelectionMode="None" HeightRequest="46">
+                        <CollectionView.ItemsLayout>
+                            <LinearItemsLayout Orientation="Horizontal" ItemSpacing="6" />
+                        </CollectionView.ItemsLayout>
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="models:Category">
+                                <Border Stroke="#0F766E" Padding="12,0" HeightRequest="36">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="16" />
+                                    </Border.StrokeShape>
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer
+                                            Command="{Binding BindingContext.SeleccionarCategoriaRapidaCommand, Source={x:Reference pageRoot}}"
+                                            CommandParameter="{Binding .}" />
+                                    </Border.GestureRecognizers>
+                                    <Label Text="{Binding Name}" VerticalOptions="Center" FontSize="13" />
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                    <Picker Title="Elige una categoría"
+                            ItemsSource="{Binding QuickCategoriasTodas}"
+                            ItemDisplayBinding="{Binding Name}"
+                            SelectedItem="{Binding QuickCategoriaSeleccionada}" />
+
+                    <Label Text="Concepto (opcional)" Style="{StaticResource Muted}" Margin="0,4,0,0" />
+                    <Entry Placeholder="Ej. Almuerzo" Text="{Binding QuickConcepto}" />
+
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="8" Margin="0,8,0,0">
+                        <Button Grid.Column="0" Text="Cancelar" Command="{Binding CerrarQuickAddCommand}" Style="{StaticResource ButtonGhost}" />
+                        <Button Grid.Column="1" Text="Guardar" Command="{Binding GuardarQuickAddCommand}" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+        </Grid>
+    </Grid>
 </ContentPage>

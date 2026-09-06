@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.EntityFrameworkCore;
+using SistemaFinanzasPres.Data;
 using SistemaFinanzasPres.Models;
 using SistemaFinanzasPres.Services;
 using SistemaFinanzasPres.Views;
@@ -9,13 +11,15 @@ namespace SistemaFinanzasPres.ViewModels;
 
 public partial class DashboardViewModel : BaseViewModel
 {
+    private readonly AppDbContext _db;
     private readonly BudgetService _budget;
     private readonly MonthService _month;
     private readonly KpiService _kpi;
     private readonly DebtService _debts;
 
-    public DashboardViewModel(BudgetService budget, MonthService month, KpiService kpi, DebtService debts)
+    public DashboardViewModel(AppDbContext db, BudgetService budget, MonthService month, KpiService kpi, DebtService debts)
     {
+        _db = db;
         _budget = budget;
         _month = month;
         _kpi = kpi;
@@ -60,9 +64,16 @@ public partial class DashboardViewModel : BaseViewModel
 
     [ObservableProperty] private bool hasSugerencias;
 
+    [ObservableProperty] private bool quickAddAbierto;
+    [ObservableProperty] private string quickMontoText = string.Empty;
+    [ObservableProperty] private Category? quickCategoriaSeleccionada;
+    [ObservableProperty] private string quickConcepto = string.Empty;
+
     public ObservableCollection<PillarRow> Pillars { get; } = new();
     public ObservableCollection<CategoryRow> Categories { get; } = new();
     public ObservableCollection<string> Sugerencias { get; } = new();
+    public ObservableCollection<Category> QuickCategoriasRecientes { get; } = new();
+    public ObservableCollection<Category> QuickCategoriasTodas { get; } = new();
 
     [RelayCommand]
     private async Task LoadAsync()
@@ -149,12 +160,83 @@ public partial class DashboardViewModel : BaseViewModel
             Sugerencias.Clear();
             foreach (var s in sugerencias) Sugerencias.Add(s);
             HasSugerencias = sugerencias.Count > 0;
+
+            await CargarCategoriasQuickAddAsync();
         }
         finally { IsBusy = false; }
     }
 
+    // Categorías más usadas este mes primero — mismo criterio que la versión web
+    // del botón de acción rápida (conteo de transacciones, no monto).
+    private async Task CargarCategoriasQuickAddAsync()
+    {
+        var start = new DateTime(_month.Year, _month.Month, 1);
+        var end = start.AddMonths(1);
+        var conteoPorCategoria = await _db.Transactions.AsNoTracking()
+            .Where(t => t.Date >= start && t.Date < end)
+            .GroupBy(t => t.CategoryId)
+            .Select(g => new { CategoryId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.CategoryId, x => x.Count);
+
+        var todas = await _db.Categories.AsNoTracking()
+            .Where(c => c.IsActive && c.Pillar != Pillar.PrimerFruto)
+            .OrderBy(c => c.SortOrder)
+            .ToListAsync();
+
+        QuickCategoriasTodas.Clear();
+        foreach (var c in todas) QuickCategoriasTodas.Add(c);
+
+        QuickCategoriasRecientes.Clear();
+        foreach (var c in todas
+            .Where(c => conteoPorCategoria.ContainsKey(c.Id))
+            .OrderByDescending(c => conteoPorCategoria[c.Id])
+            .Take(6))
+            QuickCategoriasRecientes.Add(c);
+    }
+
     [RelayCommand] private void PrevMonth() => _month.Shift(-1);
     [RelayCommand] private void NextMonth() => _month.Shift(1);
+
+    [RelayCommand] private void AbrirQuickAdd() => QuickAddAbierto = true;
+
+    [RelayCommand]
+    private void CerrarQuickAdd()
+    {
+        QuickAddAbierto = false;
+        QuickMontoText = string.Empty;
+        QuickCategoriaSeleccionada = null;
+        QuickConcepto = string.Empty;
+    }
+
+    [RelayCommand]
+    private void SeleccionarCategoriaRapida(Category? categoria) => QuickCategoriaSeleccionada = categoria;
+
+    [RelayCommand]
+    private async Task GuardarQuickAddAsync()
+    {
+        if (QuickCategoriaSeleccionada == null)
+        {
+            await Shell.Current.DisplayAlert("Validación", "Elige una categoría.", "OK");
+            return;
+        }
+        if (!decimal.TryParse(QuickMontoText, out var monto) || monto <= 0)
+        {
+            await Shell.Current.DisplayAlert("Validación", "Ingresa un monto válido.", "OK");
+            return;
+        }
+
+        _db.Transactions.Add(new Transaction
+        {
+            Date = DateTime.Today,
+            Concept = string.IsNullOrWhiteSpace(QuickConcepto) ? QuickCategoriaSeleccionada.Name : QuickConcepto.Trim(),
+            CategoryId = QuickCategoriaSeleccionada.Id,
+            Amount = monto,
+        });
+        await _db.SaveChangesAsync();
+
+        CerrarQuickAdd();
+        await LoadAsync();
+    }
 }
 
 public record PillarRow(string Name, string Budgeted, string Spent, string Meta, string Pct, string Status);
