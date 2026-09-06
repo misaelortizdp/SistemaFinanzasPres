@@ -4,8 +4,6 @@ using SistemaFinanzasPres.Models;
 
 namespace SistemaFinanzasPres.Services;
 
-public record KpiRow(string Name, string Value, string Target, string Status, string Hint, double Progress = 0d);
-
 public record FondoEmergenciaInfo(
     decimal GastosFijos,
     int Meses,
@@ -13,6 +11,8 @@ public record FondoEmergenciaInfo(
     decimal Acumulado,
     decimal Avance,
     string Status);
+
+public record TrendSummary(string MejorMes, string PeorMes, string PromedioAhorro, string PromedioGasto);
 
 public class KpiService
 {
@@ -25,90 +25,11 @@ public class KpiService
         _budget = budget;
     }
 
-    public async Task<(IReadOnlyList<KpiRow> Rows, FondoEmergenciaInfo Fondo)> GetKpisAsync(int year, int month)
+    public async Task<FondoEmergenciaInfo> GetFondoEmergenciaAsync(int year, int month)
     {
         var snap = await _budget.GetSnapshotAsync(year, month);
         var cfg = snap.Config;
-
-        var ahorroPilar = snap.Pillars.First(p => p.Pillar == Pillar.Ahorro);
         var necPilar = snap.Pillars.First(p => p.Pillar == Pillar.Necesidad);
-        var desPilar = snap.Pillars.First(p => p.Pillar == Pillar.Deseo);
-        var deudaPilar = snap.Pillars.First(p => p.Pillar == Pillar.Deuda);
-
-        var tasaAhorro = snap.IngresoDisponible > 0 ? ahorroPilar.Spent / snap.IngresoDisponible : 0m;
-
-        var start = new DateTime(year, month, 1);
-        var end = start.AddMonths(1);
-
-        var deseosCatIds = snap.Categories
-            .Where(c => c.Pillar == Pillar.Deseo)
-            .Select(c => c.CategoryId)
-            .ToList();
-
-        var hormigaTx = await _db.Transactions.AsNoTracking()
-            .Where(t => t.Date >= start && t.Date < end && deseosCatIds.Contains(t.CategoryId))
-            .Select(t => new { t.Amount, t.Date })
-            .ToListAsync();
-        var hormiga = hormigaTx.Sum(x => x.Amount);
-
-        var dias = await _db.Transactions.AsNoTracking()
-            .Where(t => t.Date >= start && t.Date < end)
-            .Select(t => t.Date.Date)
-            .Distinct()
-            .CountAsync();
-
-        var ahorroProgress = (double)Math.Min(1m, snap.IngresoDisponible > 0 ? tasaAhorro / 0.20m : 0m);
-        var necProgress = (double)Math.Min(1m, necPilar.PercentOfIncomeBase / 0.50m);
-        var desProgress = (double)Math.Min(1m, desPilar.PercentOfIncomeBase / 0.30m);
-        var hormigaProgress = desPilar.MetaAmount > 0
-            ? (double)Math.Min(1m, hormiga / desPilar.MetaAmount) : 0d;
-
-        var rows = new List<KpiRow>
-        {
-            new("💰 Tasa de Ahorro",
-                tasaAhorro.ToString("P1"),
-                "≥ 20%",
-                tasaAhorro >= 0.20m ? "✅ Excelente" :
-                tasaAhorro >= 0.10m ? "🟡 Bajo meta" : "🔴 Crítico",
-                "Porcentaje del ingreso destinado a ahorro e inversión",
-                ahorroProgress),
-
-            new("🏦 Ahorro Mensual",
-                ahorroPilar.Spent.ToString("C0"),
-                (snap.IngresoDisponible * cfg.MetaAhorroMinimoPct).ToString("C0"),
-                ahorroPilar.Spent >= snap.IngresoDisponible * cfg.MetaAhorroMinimoPct ? "✅ Meta alcanzada" : "🟡 En progreso",
-                "Suma de ahorro líquido + fondo emergencia + inversión",
-                snap.IngresoDisponible * cfg.MetaAhorroMinimoPct > 0
-                    ? (double)Math.Min(1m, ahorroPilar.Spent / (snap.IngresoDisponible * cfg.MetaAhorroMinimoPct)) : 0d),
-
-            new("🛒 % Gasto en Necesidades",
-                necPilar.PercentOfIncomeBase.ToString("P1"),
-                "≤ 50%",
-                necPilar.PercentOfIncomeBase <= 0.50m ? "✅ OK" : "🔴 Sobre 50%",
-                "Sobre ingreso disponible (sin diezmo). Menor es mejor.",
-                necProgress),
-
-            new("🎉 % Gasto en Deseos",
-                desPilar.PercentOfIncomeBase.ToString("P1"),
-                "≤ 30%",
-                desPilar.PercentOfIncomeBase <= 0.30m ? "✅ OK" : "🔴 Sobre 30%",
-                "Sobre ingreso disponible (sin diezmo). Menor es mejor.",
-                desProgress),
-
-            new("🐜 Gastos en Deseos",
-                hormiga.ToString("C0"),
-                desPilar.MetaAmount.ToString("C0"),
-                hormiga <= desPilar.MetaAmount ? "✅ Controlado" : "🟡 Revisar",
-                "Suma total de gastos del pilar Deseos vs el presupuesto.",
-                hormigaProgress),
-
-            new("📅 Días con registro",
-                dias.ToString(),
-                $"{DateTime.DaysInMonth(year, month)} días",
-                dias >= 20 ? "✅ Constante" : dias >= 10 ? "🟡 Regular" : "🔴 Bajo",
-                "Constancia en el registro = mejor control",
-                (double)Math.Min(1d, dias / (double)DateTime.DaysInMonth(year, month))),
-        };
 
         var gastosFijos = necPilar.Budgeted;
         var metaFondo = gastosFijos * cfg.FondoEmergenciaMeses;
@@ -118,39 +39,127 @@ public class KpiService
             .ToListAsync();
         var fondoBalance = fondoBalanceRaw.Sum();
         var avance = metaFondo > 0 ? fondoBalance / metaFondo : 0m;
-        string fondoStatus =
+        string status =
             fondoBalance >= metaFondo ? "✅ Meta cumplida" :
             fondoBalance >= metaFondo * 0.5m ? "🟡 En progreso" :
             "🔴 Por construir";
 
-        var fondo = new FondoEmergenciaInfo(gastosFijos, cfg.FondoEmergenciaMeses, metaFondo, fondoBalance, avance, fondoStatus);
+        return new FondoEmergenciaInfo(gastosFijos, cfg.FondoEmergenciaMeses, metaFondo, fondoBalance, avance, status);
+    }
 
-        if (deudaPilar.MetaPct > 0 || deudaPilar.Spent > 0)
+    // Motor de sugerencias accionables: 4 reglas fijas (la 5ta del plan — proyección de fin
+    // de mes — ya vive en BudgetSnapshot.Projection.Headline, mostrada aparte en Dashboard).
+    public async Task<List<string>> GetSugerenciasAsync(int year, int month)
+    {
+        var snap = await _budget.GetSnapshotAsync(year, month);
+        var sugerencias = new List<string>();
+        if (snap.IngresoDisponible <= 0) return sugerencias;
+
+        var balance = snap.IngresoDisponible - snap.TotalSpent;
+        if (balance < 0)
+            sugerencias.Add($"Vas {Math.Abs(balance):C0} en números rojos este mes.");
+
+        foreach (var pilar in snap.Pillars)
         {
-            rows.Add(new KpiRow(
-                "💳 % Gasto en Deuda",
-                deudaPilar.PercentOfIncomeBase.ToString("P1"),
-                deudaPilar.MetaPct.ToString("P0"),
-                deudaPilar.PercentOfIncomeBase <= deudaPilar.MetaPct ? "✅ OK" : "🔴 Sobre meta",
-                "Pago de deudas sobre ingreso disponible (sin diezmo). Menor es mejor.",
-                (double)Math.Min(1m, deudaPilar.MetaPct > 0 ? deudaPilar.PercentOfIncomeBase / deudaPilar.MetaPct : 0m)));
+            if (pilar.Pillar == Pillar.Ahorro) continue; // meta mínima, regla aparte abajo
+            if (pilar.MetaAmount > 0 && pilar.Spent > pilar.MetaAmount)
+                sugerencias.Add($"Vas {(pilar.Spent - pilar.MetaAmount):C0} sobre tu meta en {pilar.Pillar.Display()}.");
         }
 
-        var debtTotal = await _db.Debts.AsNoTracking()
-            .Where(d => d.IsActive)
-            .SumAsync(d => (double)d.CurrentBalance);
-        var debtTotalDec = (decimal)debtTotal;
-        if (debtTotalDec > 0)
+        var ahorro = snap.Pillars.First(p => p.Pillar == Pillar.Ahorro);
+        if (ahorro.MetaAmount > 0 && ahorro.Spent < ahorro.MetaAmount)
+            sugerencias.Add($"Te faltan {(ahorro.MetaAmount - ahorro.Spent):C0} este mes para tu meta de ahorro.");
+
+        // Gastos hormiga: el pilar Deseos se está ejecutando más rápido de lo que avanza
+        // el mes (en vez de un umbral fijo en pesos, que no generaliza entre usuarios).
+        var proj = snap.Projection;
+        if (proj.IsCurrentMonth && proj.DaysElapsed >= 5)
         {
-            rows.Add(new KpiRow(
-                "💳 Total en deudas",
-                debtTotalDec.ToString("C0"),
-                "$0",
-                debtTotalDec == 0 ? "✅ Sin deudas 🎉" : "🔴 Activas",
-                "Suma de saldos de todas tus deudas activas. Meta: $0.",
-                0d));
+            var deseos = snap.Pillars.First(p => p.Pillar == Pillar.Deseo);
+            if (deseos.MetaAmount > 0)
+            {
+                var pctDeseosEjecutado = deseos.Spent / deseos.MetaAmount;
+                var pctMesTranscurrido = (decimal)proj.DaysElapsed / proj.DaysInMonth;
+                if (pctDeseosEjecutado > pctMesTranscurrido + 0.15m)
+                    sugerencias.Add($"Ya usaste el {pctDeseosEjecutado:P0} de tu presupuesto de Deseos y solo va el {pctMesTranscurrido:P0} del mes — cuidado con los gastos hormiga.");
+            }
         }
 
-        return (rows, fondo);
+        return sugerencias;
+    }
+
+    public async Task<(int Dias, int DiasDelMes)> GetDiasConRegistroAsync(int year, int month)
+    {
+        var start = new DateTime(year, month, 1);
+        var end = start.AddMonths(1);
+        var dias = await _db.Transactions.AsNoTracking()
+            .Where(t => t.Date >= start && t.Date < end)
+            .Select(t => t.Date.Date)
+            .Distinct()
+            .CountAsync();
+        return (dias, DateTime.DaysInMonth(year, month));
+    }
+
+    // Resumen de los últimos 6 meses (mejor/peor mes por neto, promedios) — el detalle
+    // mes a mes que antes vivía en una pantalla aparte no se trae: el mismo dato ya se ve,
+    // mes a mes, en el propio Dashboard al navegar con las flechas de mes.
+    public async Task<TrendSummary> GetTrendSummaryAsync()
+    {
+        var cfg = await _db.AppConfigs.AsNoTracking().FirstOrDefaultAsync() ?? new AppConfig();
+        var diezmoPct = cfg.DiezmoPct;
+
+        var today = DateTime.Today;
+        var monthList = Enumerable.Range(0, 6)
+            .Select(i => { var d = today.AddMonths(-5 + i); return (d.Year, d.Month); })
+            .ToList();
+
+        var rangeStart = new DateTime(monthList[0].Year, monthList[0].Month, 1);
+        var rangeEnd = new DateTime(monthList[^1].Year, monthList[^1].Month, 1).AddMonths(1);
+
+        var incomesByMonth = (await _db.Incomes.AsNoTracking()
+            .Where(i => i.Date >= rangeStart && i.Date < rangeEnd)
+            .Select(i => new { i.Date.Year, i.Date.Month, i.Amount })
+            .ToListAsync())
+            .GroupBy(i => (i.Year, i.Month))
+            .ToDictionary(g => g.Key, g => g.Sum(x => x.Amount));
+
+        var ahoroCatIds = await _db.Categories.AsNoTracking()
+            .Where(c => c.Pillar == Pillar.Ahorro && c.IsActive)
+            .Select(c => c.Id).ToListAsync();
+
+        var primerFrutoCatIds = await _db.Categories.AsNoTracking()
+            .Where(c => c.Pillar == Pillar.PrimerFruto)
+            .Select(c => c.Id).ToListAsync();
+
+        var allTx = await _db.Transactions.AsNoTracking()
+            .Where(t => t.Date >= rangeStart && t.Date < rangeEnd && !primerFrutoCatIds.Contains(t.CategoryId))
+            .Select(t => new { t.Date.Year, t.Date.Month, t.Amount, t.CategoryId })
+            .ToListAsync();
+
+        var txByMonth = allTx.GroupBy(t => (t.Year, t.Month)).ToDictionary(g => g.Key, g => g.ToList());
+
+        var raw = monthList.Select(ym =>
+        {
+            var ingresoTotal = incomesByMonth.GetValueOrDefault(ym);
+            var disponible = ingresoTotal - ingresoTotal * diezmoPct;
+            var txs = txByMonth.GetValueOrDefault(ym);
+            var gastado = txs?.Sum(t => t.Amount) ?? 0m;
+            var ahorro = txs?.Where(t => ahoroCatIds.Contains(t.CategoryId)).Sum(t => t.Amount) ?? 0m;
+            var neto = disponible - gastado;
+            var tasaAhorro = disponible > 0 ? ahorro / disponible : 0m;
+            return (ym, disponible, gastado, neto, tasaAhorro);
+        }).Where(r => r.disponible > 0).ToList();
+
+        if (raw.Count == 0)
+            return new TrendSummary("—", "—", "0%", "$0");
+
+        var mejor = raw.OrderByDescending(r => r.neto).First();
+        var peor = raw.OrderBy(r => r.neto).First();
+
+        return new TrendSummary(
+            $"{new DateTime(mejor.ym.Year, mejor.ym.Month, 1):MMM yyyy} (neto {mejor.neto:C0})",
+            $"{new DateTime(peor.ym.Year, peor.ym.Month, 1):MMM yyyy} (neto {peor.neto:C0})",
+            raw.Average(r => r.tasaAhorro).ToString("P1"),
+            raw.Average(r => r.gastado).ToString("C0"));
     }
 }

@@ -178,7 +178,11 @@ export default function PaginaPresupuesto() {
             const pilarPresupuestado = grupo.reduce((s, f) => s + f.monto, 0);
             const pilarEjecutado = grupo.reduce((s, f) => s + f.ejecutado, 0);
             const pilarPct = pilarPresupuestado > 0 ? Math.min(100, (pilarEjecutado / pilarPresupuestado) * 100) : 0;
-            const pilarExcedido = pilarEjecutado > pilarPresupuestado && pilarPresupuestado > 0;
+            // Ahorro es una meta mínima a alcanzar (más es mejor); el resto de pilares son
+            // un tope a no pasar (menos es mejor) — se invierte la dirección solo para Ahorro.
+            const esAhorroPilar = pilar.tipo === 3;
+            const pilarBien = pilarPresupuestado === 0 || (esAhorroPilar ? pilarEjecutado >= pilarPresupuestado : pilarEjecutado <= pilarPresupuestado);
+            const pilarCerca = !pilarBien && pilarPct > 80;
 
             return (
               <Card key={pilar.tipo} className={`border ${pilar.borde}`}>
@@ -193,7 +197,7 @@ export default function PaginaPresupuesto() {
                   {/* Barra de progreso del pilar */}
                   <div className="h-1.5 bg-muted rounded-full overflow-hidden mt-1.5">
                     <div
-                      className={`h-full transition-all rounded-full ${pilarExcedido ? "bg-red-500" : pilarPct > 80 ? "bg-amber-500" : pilar.barra}`}
+                      className={`h-full transition-all rounded-full ${!pilarBien ? (pilarCerca ? "bg-amber-500" : "bg-red-500") : pilar.barra}`}
                       style={{ width: `${pilarPct}%` }}
                     />
                   </div>
@@ -202,7 +206,8 @@ export default function PaginaPresupuesto() {
                   <ul className="divide-y">
                     {grupo.map(({ categoria, monto, ejecutado, esAutomatico }) => {
                       const pct = monto > 0 ? Math.min(100, (ejecutado / monto) * 100) : 0;
-                      const excedido = ejecutado > monto && monto > 0;
+                      const bien = monto === 0 || (esAhorroPilar ? ejecutado >= monto : ejecutado <= monto);
+                      const cerca = !bien && pct > 80;
                       return (
                         <li key={categoria.id} className="py-2.5">
                           <div className="flex items-center justify-between gap-2 mb-1">
@@ -211,7 +216,7 @@ export default function PaginaPresupuesto() {
                               <span className="font-medium text-sm truncate">{categoria.nombre}</span>
                             </div>
                             <div className="flex items-center gap-2">
-                              <span className={`text-sm font-semibold ${excedido ? "text-red-600" : "text-muted-foreground"}`}>
+                              <span className={`text-sm font-semibold ${!bien ? "text-red-600" : "text-muted-foreground"}`}>
                                 {formatoMoneda(ejecutado)}
                               </span>
                               <span className="text-muted-foreground text-xs">/</span>
@@ -239,7 +244,7 @@ export default function PaginaPresupuesto() {
                           </div>
                           <div className="h-1 bg-muted rounded-full overflow-hidden">
                             <div
-                              className={`h-full transition-all ${excedido ? "bg-red-500" : pct > 80 ? "bg-amber-500" : "bg-emerald-500"}`}
+                              className={`h-full transition-all ${!bien ? (cerca ? "bg-amber-500" : "bg-red-500") : "bg-emerald-500"}`}
                               style={{ width: `${pct}%` }}
                             />
                           </div>

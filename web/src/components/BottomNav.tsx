@@ -1,6 +1,6 @@
 import { NavLink } from "react-router-dom";
 import {
-  LayoutDashboard, ArrowDownUp, PieChart, Wallet, Settings
+  LayoutDashboard, ArrowDownUp, PieChart, Settings
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -8,7 +8,6 @@ const ITEMS = [
   { ruta: "/",            icono: LayoutDashboard, etiqueta: "Panel" },
   { ruta: "/movimientos", icono: ArrowDownUp,     etiqueta: "Movimientos" },
   { ruta: "/presupuesto", icono: PieChart,        etiqueta: "Presupuesto" },
-  { ruta: "/cuentas",     icono: Wallet,          etiqueta: "Cuentas" },
   { ruta: "/configuracion", icono: Settings,      etiqueta: "Config" },
 ];
 

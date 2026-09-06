@@ -63,6 +63,7 @@ public class KpisPanelDto
     public int FondoEmergenciaMeses { get; set; }
     public decimal TotalDeudas { get; set; }
     public int DeudasActivas { get; set; }
+    public List<string> Sugerencias { get; set; } = [];
 }
 
 public class TendenciaDetalleDto
@@ -84,28 +85,4 @@ public class TendenciaMesDetalleDto
     public decimal Ahorro { get; set; }
     public decimal TasaAhorroPct { get; set; }
     public string Flecha { get; set; } = "—";
-}
-
-public class SimulacionDeudaRequestDto
-{
-    public string Estrategia { get; set; } = "Avalancha";
-    public decimal PagoExtraMensual { get; set; } = 0;
-}
-
-public class SimulacionDeudaResultDto
-{
-    public string Estrategia { get; set; } = "";
-    public int MesesTotales { get; set; }
-    public decimal InteresTotalPagado { get; set; }
-    public List<SimulacionDeudaItemDto> Deudas { get; set; } = [];
-}
-
-public class SimulacionDeudaItemDto
-{
-    public string Nombre { get; set; } = "";
-    public decimal SaldoActual { get; set; }
-    public decimal TasaInteres { get; set; }
-    public decimal PagoMinimo { get; set; }
-    public int MesesParaPagar { get; set; }
-    public decimal InteresTotal { get; set; }
 }

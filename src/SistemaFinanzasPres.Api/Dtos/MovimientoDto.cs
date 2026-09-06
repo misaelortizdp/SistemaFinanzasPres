@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using SistemaFinanzasPres.Api.Modelos;
 
 namespace SistemaFinanzasPres.Api.Dtos;
 
@@ -12,6 +13,7 @@ public class MovimientoDto
 
     public int CategoriaId { get; set; }
     public string? NombreCategoria { get; set; }
+    public TipoCategoria? TipoCategoria { get; set; }
 
     public int? CuentaId { get; set; }
     public string? NombreCuenta { get; set; }

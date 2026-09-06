@@ -6,7 +6,7 @@ import {
   PiggyBank, Shield, CreditCard, ChevronDown, ChevronUp,
 } from "lucide-react";
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell, Legend,
 } from "recharts";
 import { api } from "@/lib/api";
@@ -18,6 +18,19 @@ import { SkeletonDashboard } from "@/components/ui/skeleton";
 interface Movimiento { id: number; fecha: string; concepto: string; monto: number; nombreCategoria?: string }
 interface PatrimonioActual { totalActivos: number; totalPasivos: number; patrimonioNeto: number }
 interface TendenciaMes { anio: number; mes: number; ingresos: number; gastos: number }
+interface TendenciaMesDetalle {
+  anio: number; mes: number;
+  ingresos: number; gastos: number;
+  ingresoDisponible: number; ahorro: number;
+  tasaAhorroPct: number; flecha: string;
+}
+interface TendenciaDetalle {
+  meses: TendenciaMesDetalle[];
+  mejorMes?: string | null;
+  peorMes?: string | null;
+  promedioTasaAhorro: number;
+  promedioGastos: number;
+}
 interface GastoCategoria { nombre: string; monto: number; color?: string; icono?: string }
 interface Distribucion { necesidades: number; deseos: number; deuda: number; ahorro: number; totalIngresos: number; ingresoDisponible: number; diezmoMonto: number }
 interface Proyeccion { diasTranscurridos: number; diasTotales: number; gastoActual: number; gastoProyectado: number; tasaQuemaDiaria: number; presupuestoDiarioPermitido: number; ingresoDisponible: number }
@@ -31,6 +44,7 @@ interface Kpis {
   tasaAhorroPct: number; ahorroMensual: number;
   fondoEmergenciaActual: number; fondoEmergenciaMeta: number; fondoEmergenciaMeses: number;
   totalDeudas: number; deudasActivas: number;
+  sugerencias: string[];
 }
 interface Config {
   metaNecesidadesPct: number
@@ -45,6 +59,12 @@ function compacto(v: number) {
   if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
   if (v >= 1_000) return `${(v / 1_000).toFixed(0)}k`;
   return String(v);
+}
+
+function etiquetaMes(anioMes: string | null | undefined): string {
+  if (!anioMes) return "—";
+  const [a, m] = anioMes.split("-");
+  return `${NOMBRES_MES[parseInt(m) - 1]} ${a}`;
 }
 
 export default function PaginaPanel() {
@@ -82,6 +102,11 @@ export default function PaginaPanel() {
     queryFn: async () => (await api.get("/api/configuracion")).data,
   });
 
+  const { data: tendenciaDetalle } = useQuery<TendenciaDetalle>({
+    queryKey: ["panel-tendencias"],
+    queryFn: async () => (await api.get("/api/panel/tendencias")).data,
+  });
+
   const mesActualTendencia = resumen?.tendencia.find(t => t.anio === anio && t.mes === mes);
   const totalIngresos = mesActualTendencia?.ingresos ?? 0;
   const totalGastos = mesActualTendencia?.gastos ?? 0;
@@ -94,10 +119,11 @@ export default function PaginaPanel() {
   const tendenciaGastos = mesAnterior ? totalGastos - mesAnterior.gastos : 0;
   const tendenciaBalance = mesAnterior ? balance - (mesAnterior.ingresos - mesAnterior.gastos) : 0;
 
-  const datosBarras = resumen?.tendencia.map(t => ({
-    nombre: NOMBRES_MES[t.mes - 1].slice(0, 3),
-    Ingresos: t.ingresos,
-    Gastos: t.gastos,
+  const datosTendencia = tendenciaDetalle?.meses.map(m => ({
+    nombre: NOMBRES_MES[m.mes - 1].slice(0, 3),
+    Ingresos: m.ingresos,
+    Gastos: m.gastos,
+    Ahorro: m.ahorro,
   })) ?? [];
 
   const datosDona = (resumen?.gastosPorCategoria ?? []).map((g, i) => ({
@@ -124,6 +150,25 @@ export default function PaginaPanel() {
         <h1 className="text-3xl font-bold">Hola, {usuario?.nombre} 👋</h1>
         <p className="text-muted-foreground">{NOMBRES_MES[mes - 1]} {anio}</p>
       </header>
+
+      {/* Sugerencias accionables */}
+      {kpis && kpis.sugerencias.length > 0 && (
+        <Card className="border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/20">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">💡 Sugerencias</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-1.5 text-sm">
+              {kpis.sugerencias.map((s, i) => (
+                <li key={i} className="flex gap-2">
+                  <span>⚠️</span>
+                  <span>{s}</span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Fila 1: KPI cards principales */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -263,50 +308,84 @@ export default function PaginaPanel() {
           <span>📊 Gráficas y análisis</span>
           {graficasAbierto ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         </button>
-        <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 ${graficasAbierto ? '' : 'hidden md:grid'}`}>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Ingresos vs Gastos — últimos 6 meses</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {datosBarras.every(d => d.Ingresos === 0 && d.Gastos === 0) ? (
-                <p className="text-sm text-muted-foreground py-8 text-center">Sin datos suficientes aún.</p>
-              ) : (
-                <ResponsiveContainer width="100%" height={220}>
-                  <BarChart data={datosBarras} barCategoryGap="30%">
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="nombre" tick={{ fontSize: 12 }} />
-                    <YAxis tickFormatter={compacto} tick={{ fontSize: 12 }} width={45} />
-                    <Tooltip formatter={(v) => formatoMoneda(Number(v ?? 0))} contentStyle={{ fontSize: 12, borderRadius: 8 }} />
-                    <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
-                    <Bar dataKey="Ingresos" fill="#10b981" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="Gastos" fill="#f43f5e" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              )}
-            </CardContent>
-          </Card>
+        <div className={graficasAbierto ? 'space-y-4' : 'hidden md:block md:space-y-4'}>
+          {tendenciaDetalle && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <Card>
+                <CardContent className="pt-4">
+                  <p className="text-xs text-muted-foreground">Promedio tasa ahorro</p>
+                  <p className={`text-lg font-bold ${tendenciaDetalle.promedioTasaAhorro >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                    {tendenciaDetalle.promedioTasaAhorro.toFixed(1)}%
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-4">
+                  <p className="text-xs text-muted-foreground">Promedio gasto mensual</p>
+                  <p className="text-lg font-bold">{formatoMoneda(tendenciaDetalle.promedioGastos)}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-4">
+                  <p className="text-xs text-muted-foreground">✅ Mejor mes</p>
+                  <p className="text-base font-bold text-emerald-600">{etiquetaMes(tendenciaDetalle.mejorMes)}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-4">
+                  <p className="text-xs text-muted-foreground">⚠ Mes más difícil</p>
+                  <p className="text-base font-bold text-red-600">{etiquetaMes(tendenciaDetalle.peorMes)}</p>
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Gastos por categoría — {NOMBRES_MES[mes - 1]}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {datosDona.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-8 text-center">No hay gastos registrados este mes.</p>
-              ) : (
-                <ResponsiveContainer width="100%" height={220}>
-                  <PieChart>
-                    <Pie data={datosDona} cx="50%" cy="50%" innerRadius={55} outerRadius={85} paddingAngle={2} dataKey="value">
-                      {datosDona.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-                    </Pie>
-                    <Tooltip formatter={(v) => formatoMoneda(Number(v ?? 0))} contentStyle={{ fontSize: 12, borderRadius: 8 }} />
-                    <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }} formatter={(value) => value.length > 18 ? value.slice(0, 18) + "…" : value} />
-                  </PieChart>
-                </ResponsiveContainer>
-              )}
-            </CardContent>
-          </Card>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Ingresos, Gastos y Ahorro — últimos 6 meses</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {datosTendencia.every(d => d.Ingresos === 0 && d.Gastos === 0) ? (
+                  <p className="text-sm text-muted-foreground py-8 text-center">Sin datos suficientes aún.</p>
+                ) : (
+                  <ResponsiveContainer width="100%" height={220}>
+                    <LineChart data={datosTendencia}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis dataKey="nombre" tick={{ fontSize: 12 }} />
+                      <YAxis tickFormatter={compacto} tick={{ fontSize: 12 }} width={45} />
+                      <Tooltip formatter={(v) => formatoMoneda(Number(v ?? 0))} contentStyle={{ fontSize: 12, borderRadius: 8 }} />
+                      <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
+                      <Line type="monotone" dataKey="Ingresos" stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} />
+                      <Line type="monotone" dataKey="Gastos" stroke="#f43f5e" strokeWidth={2} dot={{ r: 3 }} />
+                      <Line type="monotone" dataKey="Ahorro" stroke="#6366f1" strokeWidth={2} strokeDasharray="4 2" dot={{ r: 3 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Gastos por categoría — {NOMBRES_MES[mes - 1]}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {datosDona.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-8 text-center">No hay gastos registrados este mes.</p>
+                ) : (
+                  <ResponsiveContainer width="100%" height={220}>
+                    <PieChart>
+                      <Pie data={datosDona} cx="50%" cy="50%" innerRadius={55} outerRadius={85} paddingAngle={2} dataKey="value">
+                        {datosDona.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                      </Pie>
+                      <Tooltip formatter={(v) => formatoMoneda(Number(v ?? 0))} contentStyle={{ fontSize: 12, borderRadius: 8 }} />
+                      <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }} formatter={(value) => value.length > 18 ? value.slice(0, 18) + "…" : value} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
 
@@ -359,7 +438,7 @@ export default function PaginaPanel() {
                   {((config?.metaDeudaPct ?? 0) > 0 || dist.deuda > 0) && (
                     <Barra50 etiqueta="Deuda" icono="💳" actual={dist.deuda} objetivo={base * (config?.metaDeudaPct ?? 0)} pct={Math.round((config?.metaDeudaPct ?? 0) * 100)} />
                   )}
-                  <Barra50 etiqueta="Ahorro"      icono="💰" actual={dist.ahorro}      objetivo={base * (config?.metaAhorroPct ?? 0.2)}      pct={Math.round((config?.metaAhorroPct ?? 0.2) * 100)} />
+                  <Barra50 etiqueta="Ahorro"      icono="💰" actual={dist.ahorro}      objetivo={base * (config?.metaAhorroPct ?? 0.2)}      pct={Math.round((config?.metaAhorroPct ?? 0.2) * 100)} metaMinima />
                 </>;
               })()}
             </CardContent>
@@ -421,23 +500,27 @@ function TarjetaKpi({ icono, etiqueta, valor, colorValor, tendencia }: { icono: 
   );
 }
 
-function Barra50({ etiqueta, icono, actual, objetivo, pct }: { etiqueta: string; icono: string; actual: number; objetivo: number; pct: number }) {
+function Barra50({ etiqueta, icono, actual, objetivo, pct, metaMinima = false }: { etiqueta: string; icono: string; actual: number; objetivo: number; pct: number; metaMinima?: boolean }) {
   const porcentaje = objetivo > 0 ? Math.min(100, (actual / objetivo) * 100) : 0;
-  const excedido = actual > objetivo;
-  const cerca = !excedido && porcentaje >= 80;
+  // Para Ahorro la meta es un mínimo a alcanzar (más es mejor); para el resto es un tope
+  // a no pasar (menos es mejor) — el color/mensaje se invierte según cuál es.
+  const bien = metaMinima ? actual >= objetivo : actual <= objetivo;
+  const cerca = !bien && porcentaje >= 80;
   return (
     <div className="space-y-1">
       <div className="flex justify-between text-sm">
         <span className="font-medium">{icono} {etiqueta} <span className="text-muted-foreground font-normal">(meta {pct}%)</span></span>
-        <span className={excedido ? "text-red-600 font-semibold" : cerca ? "text-amber-600 font-semibold" : "text-muted-foreground"}>
+        <span className={!bien ? (cerca ? "text-amber-600 font-semibold" : "text-red-600 font-semibold") : "text-muted-foreground"}>
           {formatoMoneda(actual)} / {formatoMoneda(objetivo)}
         </span>
       </div>
       <div className="h-2 bg-muted rounded-full overflow-hidden">
-        <div className={`h-full transition-all rounded-full ${excedido ? "bg-red-500" : cerca ? "bg-amber-500" : "bg-emerald-500"}`} style={{ width: `${porcentaje}%` }} />
+        <div className={`h-full transition-all rounded-full ${!bien ? (cerca ? "bg-amber-500" : "bg-red-500") : "bg-emerald-500"}`} style={{ width: `${porcentaje}%` }} />
       </div>
       <p className="text-xs text-muted-foreground">
-        {excedido ? `Excediste el límite por ${formatoMoneda(actual - objetivo)}` : `Disponible: ${formatoMoneda(objetivo - actual)}`}
+        {metaMinima
+          ? (bien ? `Meta alcanzada, +${formatoMoneda(actual - objetivo)}` : `Te faltan ${formatoMoneda(objetivo - actual)} para tu meta`)
+          : (bien ? `Disponible: ${formatoMoneda(objetivo - actual)}` : `Excediste el límite por ${formatoMoneda(actual - objetivo)}`)}
       </p>
     </div>
   );

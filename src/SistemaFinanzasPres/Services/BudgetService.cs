@@ -100,11 +100,26 @@ public class BudgetService
             var b = esAutomatico ? pagoDeuda : budgetByCat.GetValueOrDefault(c.Id);
             var s = spentByCat.GetValueOrDefault(c.Id);
             var pct = b > 0 ? s / b : 0m;
-            string status =
-                s == 0 ? "⬜ Sin gastos" :
-                pct > 1m ? "🔴 Excedido" :
-                pct > 0.85m ? "🟡 Alerta" :
-                "🟢 OK";
+
+            // Ahorro es una meta mínima a alcanzar (más es mejor); el resto de categorías
+            // tienen un tope a no pasar (menos es mejor) — se invierte solo para Ahorro.
+            string status;
+            if (c.Pillar == Pillar.Ahorro)
+            {
+                status = s == 0 ? "⬜ Sin aportes" :
+                         b == 0 ? "🟢 OK" :
+                         pct >= 1m ? "🟢 Meta cumplida" :
+                         pct >= 0.85m ? "🟡 Cerca de la meta" :
+                         "🔴 Bajo meta";
+            }
+            else
+            {
+                status =
+                    s == 0 ? "⬜ Sin gastos" :
+                    pct > 1m ? "🔴 Excedido" :
+                    pct > 0.85m ? "🟡 Alerta" :
+                    "🟢 OK";
+            }
             return new CategoryStatus(c.Id, c.Name, c.Pillar, b, s, b - s, pct, status, esAutomatico);
         }).ToList();
 
@@ -113,14 +128,17 @@ public class BudgetService
         var diezmoMonto = ingresoTotal * config.DiezmoPct;
         var ingresoDisponible = ingresoTotal - diezmoMonto;
 
-        PillarSummary BuildPillar(Pillar p, decimal metaPct)
+        // Para Necesidad/Deseo/Deuda la meta es un tope a no pasar (menos es mejor); para
+        // Ahorro es un mínimo a alcanzar (más es mejor) — el status se invierte para esa.
+        PillarSummary BuildPillar(Pillar p, decimal metaPct, bool metaMinima = false)
         {
             var items = rows.Where(r => r.Pillar == p).ToList();
             var b = items.Sum(x => x.Budgeted);
             var s = items.Sum(x => x.Spent);
             var pctBase = ingresoDisponible > 0 ? s / ingresoDisponible : 0m;
             var meta = ingresoDisponible * metaPct;
-            string status = pctBase <= metaPct ? "✅ Dentro meta" : "⚠️ Sobre meta";
+            var bien = metaMinima ? pctBase >= metaPct : pctBase <= metaPct;
+            string status = bien ? "✅ Dentro meta" : metaMinima ? "⚠️ Bajo meta" : "⚠️ Sobre meta";
             return new PillarSummary(p, b, s, b - s, pctBase, metaPct, meta, status);
         }
 
@@ -129,7 +147,7 @@ public class BudgetService
             BuildPillar(Pillar.Necesidad,   config.MetaNecesidadesPct),
             BuildPillar(Pillar.Deseo,       config.MetaDeseosPct),
             BuildPillar(Pillar.Deuda,       config.MetaDeudaPct),
-            BuildPillar(Pillar.Ahorro,      config.MetaAhorroPct),
+            BuildPillar(Pillar.Ahorro,      config.MetaAhorroPct, metaMinima: true),
         };
 
         var totalB = rows.Sum(r => r.Budgeted);

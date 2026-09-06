@@ -14,9 +14,11 @@ import { useConfirm } from "@/lib/useConfirm";
 import { SkeletonTable } from "@/components/ui/skeleton";
 import { obtenerMensajeError, validaciones } from "@/lib/errorUtils";
 
+const TIPO_INGRESO = 4;
+
 interface Movimiento {
   id: number; fecha: string; concepto: string;
-  categoriaId: number; nombreCategoria?: string;
+  categoriaId: number; nombreCategoria?: string; tipoCategoria?: number;
   cuentaId?: number | null; nombreCuenta?: string | null;
   monto: number; notas?: string | null;
 }
@@ -184,10 +186,9 @@ export default function PaginaMovimientos() {
     return lista;
   }, [movimientos, filtroTexto, filtroCategoria]);
 
-  const total = movimientosFiltrados.reduce((s, m) => s + m.monto, 0);
-  const totalSinFiltro = movimientos.reduce((s, m) => s + m.monto, 0);
+  const ingresos = movimientosFiltrados.filter(m => m.tipoCategoria === TIPO_INGRESO).reduce((s, m) => s + m.monto, 0);
+  const gastos = movimientosFiltrados.filter(m => m.tipoCategoria !== TIPO_INGRESO).reduce((s, m) => s + m.monto, 0);
   const hayFiltro = filtroTexto.trim() !== "" || filtroCategoria !== "";
-  const categoriasNoIngreso = categorias.filter(c => c.tipo !== 4);
 
   return (
     <>
@@ -236,7 +237,7 @@ export default function PaginaMovimientos() {
                   className={`h-11 ${errores.categoriaId ? "border-red-500" : ""}`}
                 >
                   <option value="">— Selecciona —</option>
-                  {categoriasNoIngreso.map(c => <option key={c.id} value={c.id}>{c.icono} {c.nombre}</option>)}
+                  {categorias.map(c => <option key={c.id} value={c.id}>{c.icono} {c.nombre}</option>)}
                 </Select>
                 {errores.categoriaId && <p className="text-xs text-red-600">{errores.categoriaId}</p>}
               </div>
@@ -276,10 +277,12 @@ export default function PaginaMovimientos() {
 
       <Card>
         <CardHeader>
-          <CardTitle>
-            Movimientos del mes ({hayFiltro ? `${movimientosFiltrados.length} de ${movimientos.length}` : movimientos.length})
-            {" · "}Total: <span className="text-red-600">{formatoMoneda(total)}</span>
-            {hayFiltro && <span className="text-xs text-muted-foreground ml-2">(total mes: {formatoMoneda(totalSinFiltro)})</span>}
+          <CardTitle className="flex flex-wrap items-baseline gap-x-2">
+            <span>Movimientos del mes ({hayFiltro ? `${movimientosFiltrados.length} de ${movimientos.length}` : movimientos.length})</span>
+            <span className="text-sm font-normal">
+              Ingresos: <span className="text-emerald-600 font-semibold">{formatoMoneda(ingresos)}</span>
+              {" · "}Gastos: <span className="text-red-600 font-semibold">{formatoMoneda(gastos)}</span>
+            </span>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -300,7 +303,7 @@ export default function PaginaMovimientos() {
               onChange={(e) => setFiltroCategoria(e.target.value === "" ? "" : Number(e.target.value))}
             >
               <option value="">Todas las categorías</option>
-              {categoriasNoIngreso.map(c => <option key={c.id} value={c.id}>{c.icono} {c.nombre}</option>)}
+              {categorias.map(c => <option key={c.id} value={c.id}>{c.icono} {c.nombre}</option>)}
             </Select>
             {hayFiltro && (
               <Button variant="ghost" size="icon" onClick={() => { setFiltroTexto(""); setFiltroCategoria(""); }} className="h-11 w-11">
@@ -325,7 +328,9 @@ export default function PaginaMovimientos() {
                      </p>
                    </div>
                    <div className="flex items-center gap-1 shrink-0">
-                     <span className="font-semibold text-red-600 mr-1">{formatoMoneda(m.monto)}</span>
+                     <span className={`font-semibold mr-1 ${m.tipoCategoria === TIPO_INGRESO ? "text-emerald-600" : "text-red-600"}`}>
+                       {m.tipoCategoria === TIPO_INGRESO ? "+" : "-"}{formatoMoneda(m.monto)}
+                     </span>
                      <Button size="icon" variant="ghost" onClick={() => editar(m)} className="h-11 w-11"><Pencil className="w-4 h-4" /></Button>
                      <Button size="icon" variant="ghost" onClick={async () => {
                        const confirmado = await confirm({
