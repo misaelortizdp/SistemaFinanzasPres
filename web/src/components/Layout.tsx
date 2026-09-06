@@ -8,6 +8,7 @@ import { usarAutenticacion } from "@/autenticacion/ContextoAutenticacion";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { BottomNav } from "@/components/BottomNav";
+import { BotonAccionRapida } from "@/components/BotonAccionRapida";
 
 interface ItemNav {
   ruta: string;
@@ -92,6 +93,9 @@ export function Layout({ children }: { children: ReactNode }) {
 
       {/* Navegación inferior móvil */}
       <BottomNav />
+
+      {/* Acción rápida: registrar gasto desde cualquier pantalla */}
+      <BotonAccionRapida />
     </div>
   );
 }
