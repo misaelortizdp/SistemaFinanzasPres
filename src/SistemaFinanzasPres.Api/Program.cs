@@ -125,6 +125,7 @@ using (var scope = app.Services.CreateScope())
 {
     var bd = scope.ServiceProvider.GetRequiredService<BaseDatosContexto>();
     bd.Database.EnsureCreated();
+    await EnsureColumnasPostgresAsync(bd, proveedor);
     await MigrarIngresosAMovimientosAsync(bd);
 }
 
@@ -156,6 +157,137 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+// EnsureCreated() solo crea el esquema completo si la base de datos no tiene NINGUNA
+// tabla — en una base ya inicializada, agregar una columna a un modelo (ej. Deuda.AbonoExtra,
+// ConfigUsuario.MetaDeudaPct) nunca se propaga sola y la columna queda faltante para siempre.
+// Esto lo corrige de forma segura e idempotente: ADD COLUMN IF NOT EXISTS no falla si la
+// columna ya existe, así que es seguro correrlo en cada arranque. Solo aplica a Postgres —
+// SQLite local se recrea desde cero (EnsureCreated) con el modelo completo cada vez que se
+// borra el archivo .db, así que nunca sufre este desfase.
+static async Task EnsureColumnasPostgresAsync(BaseDatosContexto bd, string proveedor)
+{
+    if (!string.Equals(proveedor, "Postgres", StringComparison.OrdinalIgnoreCase) &&
+        !string.Equals(proveedor, "PostgreSQL", StringComparison.OrdinalIgnoreCase))
+        return;
+
+    string[] alteraciones =
+    {
+        // Categorias
+        "ALTER TABLE \"Categorias\" ADD COLUMN IF NOT EXISTS \"UsuarioId\" text NOT NULL DEFAULT ''",
+        "ALTER TABLE \"Categorias\" ADD COLUMN IF NOT EXISTS \"Nombre\" character varying(80) NOT NULL DEFAULT ''",
+        "ALTER TABLE \"Categorias\" ADD COLUMN IF NOT EXISTS \"Tipo\" integer NOT NULL DEFAULT 1",
+        "ALTER TABLE \"Categorias\" ADD COLUMN IF NOT EXISTS \"Color\" character varying(20)",
+        "ALTER TABLE \"Categorias\" ADD COLUMN IF NOT EXISTS \"Icono\" character varying(20)",
+        "ALTER TABLE \"Categorias\" ADD COLUMN IF NOT EXISTS \"Orden\" integer NOT NULL DEFAULT 0",
+        "ALTER TABLE \"Categorias\" ADD COLUMN IF NOT EXISTS \"Activa\" boolean NOT NULL DEFAULT true",
+
+        // Cuentas
+        "ALTER TABLE \"Cuentas\" ADD COLUMN IF NOT EXISTS \"UsuarioId\" text NOT NULL DEFAULT ''",
+        "ALTER TABLE \"Cuentas\" ADD COLUMN IF NOT EXISTS \"Nombre\" character varying(80) NOT NULL DEFAULT ''",
+        "ALTER TABLE \"Cuentas\" ADD COLUMN IF NOT EXISTS \"Saldo\" double precision NOT NULL DEFAULT 0",
+        "ALTER TABLE \"Cuentas\" ADD COLUMN IF NOT EXISTS \"Orden\" integer NOT NULL DEFAULT 0",
+        "ALTER TABLE \"Cuentas\" ADD COLUMN IF NOT EXISTS \"Activa\" boolean NOT NULL DEFAULT true",
+
+        // Movimientos
+        "ALTER TABLE \"Movimientos\" ADD COLUMN IF NOT EXISTS \"UsuarioId\" text NOT NULL DEFAULT ''",
+        "ALTER TABLE \"Movimientos\" ADD COLUMN IF NOT EXISTS \"Fecha\" timestamp without time zone NOT NULL DEFAULT now()",
+        "ALTER TABLE \"Movimientos\" ADD COLUMN IF NOT EXISTS \"Concepto\" character varying(200) NOT NULL DEFAULT ''",
+        "ALTER TABLE \"Movimientos\" ADD COLUMN IF NOT EXISTS \"CategoriaId\" integer NOT NULL DEFAULT 0",
+        "ALTER TABLE \"Movimientos\" ADD COLUMN IF NOT EXISTS \"CuentaId\" integer",
+        "ALTER TABLE \"Movimientos\" ADD COLUMN IF NOT EXISTS \"Monto\" double precision NOT NULL DEFAULT 0",
+        "ALTER TABLE \"Movimientos\" ADD COLUMN IF NOT EXISTS \"Notas\" character varying(500)",
+
+        // Ingresos (tabla legada — se mantiene solo para la migración de una sola vez)
+        "ALTER TABLE \"Ingresos\" ADD COLUMN IF NOT EXISTS \"UsuarioId\" text NOT NULL DEFAULT ''",
+        "ALTER TABLE \"Ingresos\" ADD COLUMN IF NOT EXISTS \"Fecha\" timestamp without time zone NOT NULL DEFAULT now()",
+        "ALTER TABLE \"Ingresos\" ADD COLUMN IF NOT EXISTS \"Concepto\" character varying(200) NOT NULL DEFAULT ''",
+        "ALTER TABLE \"Ingresos\" ADD COLUMN IF NOT EXISTS \"Monto\" double precision NOT NULL DEFAULT 0",
+        "ALTER TABLE \"Ingresos\" ADD COLUMN IF NOT EXISTS \"Fuente\" character varying(80) NOT NULL DEFAULT 'Salario'",
+        "ALTER TABLE \"Ingresos\" ADD COLUMN IF NOT EXISTS \"CuentaId\" integer",
+        "ALTER TABLE \"Ingresos\" ADD COLUMN IF NOT EXISTS \"Notas\" character varying(500)",
+        "ALTER TABLE \"Ingresos\" ADD COLUMN IF NOT EXISTS \"EsRecurrente\" boolean NOT NULL DEFAULT false",
+
+        // LineasPresupuesto
+        "ALTER TABLE \"LineasPresupuesto\" ADD COLUMN IF NOT EXISTS \"UsuarioId\" text NOT NULL DEFAULT ''",
+        "ALTER TABLE \"LineasPresupuesto\" ADD COLUMN IF NOT EXISTS \"CategoriaId\" integer NOT NULL DEFAULT 0",
+        "ALTER TABLE \"LineasPresupuesto\" ADD COLUMN IF NOT EXISTS \"Anio\" integer NOT NULL DEFAULT 0",
+        "ALTER TABLE \"LineasPresupuesto\" ADD COLUMN IF NOT EXISTS \"Mes\" integer NOT NULL DEFAULT 0",
+        "ALTER TABLE \"LineasPresupuesto\" ADD COLUMN IF NOT EXISTS \"Monto\" double precision NOT NULL DEFAULT 0",
+
+        // Deudas
+        "ALTER TABLE \"Deudas\" ADD COLUMN IF NOT EXISTS \"UsuarioId\" text NOT NULL DEFAULT ''",
+        "ALTER TABLE \"Deudas\" ADD COLUMN IF NOT EXISTS \"Nombre\" character varying(120) NOT NULL DEFAULT ''",
+        "ALTER TABLE \"Deudas\" ADD COLUMN IF NOT EXISTS \"MontoOriginal\" double precision NOT NULL DEFAULT 0",
+        "ALTER TABLE \"Deudas\" ADD COLUMN IF NOT EXISTS \"SaldoActual\" double precision NOT NULL DEFAULT 0",
+        "ALTER TABLE \"Deudas\" ADD COLUMN IF NOT EXISTS \"TasaInteres\" double precision NOT NULL DEFAULT 0",
+        "ALTER TABLE \"Deudas\" ADD COLUMN IF NOT EXISTS \"PagoMinimo\" double precision NOT NULL DEFAULT 0",
+        "ALTER TABLE \"Deudas\" ADD COLUMN IF NOT EXISTS \"AbonoExtra\" double precision NOT NULL DEFAULT 0",
+        "ALTER TABLE \"Deudas\" ADD COLUMN IF NOT EXISTS \"DiaPago\" integer NOT NULL DEFAULT 1",
+        "ALTER TABLE \"Deudas\" ADD COLUMN IF NOT EXISTS \"Activa\" boolean NOT NULL DEFAULT true",
+        "ALTER TABLE \"Deudas\" ADD COLUMN IF NOT EXISTS \"FechaCreacion\" timestamp without time zone NOT NULL DEFAULT now()",
+        "ALTER TABLE \"Deudas\" ADD COLUMN IF NOT EXISTS \"Notas\" character varying(500)",
+        "ALTER TABLE \"Deudas\" ADD COLUMN IF NOT EXISTS \"CategoriaId\" integer",
+
+        // PagosDeuda
+        "ALTER TABLE \"PagosDeuda\" ADD COLUMN IF NOT EXISTS \"DeudaId\" integer NOT NULL DEFAULT 0",
+        "ALTER TABLE \"PagosDeuda\" ADD COLUMN IF NOT EXISTS \"Fecha\" timestamp without time zone NOT NULL DEFAULT now()",
+        "ALTER TABLE \"PagosDeuda\" ADD COLUMN IF NOT EXISTS \"Monto\" double precision NOT NULL DEFAULT 0",
+        "ALTER TABLE \"PagosDeuda\" ADD COLUMN IF NOT EXISTS \"PorcionInteres\" double precision NOT NULL DEFAULT 0",
+        "ALTER TABLE \"PagosDeuda\" ADD COLUMN IF NOT EXISTS \"PorcionCapital\" double precision NOT NULL DEFAULT 0",
+        "ALTER TABLE \"PagosDeuda\" ADD COLUMN IF NOT EXISTS \"Notas\" character varying(300)",
+
+        // MetasAhorro
+        "ALTER TABLE \"MetasAhorro\" ADD COLUMN IF NOT EXISTS \"UsuarioId\" text NOT NULL DEFAULT ''",
+        "ALTER TABLE \"MetasAhorro\" ADD COLUMN IF NOT EXISTS \"Nombre\" character varying(80) NOT NULL DEFAULT ''",
+        "ALTER TABLE \"MetasAhorro\" ADD COLUMN IF NOT EXISTS \"Prioridad\" character varying(40) NOT NULL DEFAULT 'MEDIA'",
+        "ALTER TABLE \"MetasAhorro\" ADD COLUMN IF NOT EXISTS \"Objetivo\" double precision NOT NULL DEFAULT 0",
+        "ALTER TABLE \"MetasAhorro\" ADD COLUMN IF NOT EXISTS \"Acumulado\" double precision NOT NULL DEFAULT 0",
+        "ALTER TABLE \"MetasAhorro\" ADD COLUMN IF NOT EXISTS \"FechaLimite\" timestamp without time zone",
+        "ALTER TABLE \"MetasAhorro\" ADD COLUMN IF NOT EXISTS \"AporteMensualPlaneado\" double precision NOT NULL DEFAULT 0",
+        "ALTER TABLE \"MetasAhorro\" ADD COLUMN IF NOT EXISTS \"Activa\" boolean NOT NULL DEFAULT true",
+        "ALTER TABLE \"MetasAhorro\" ADD COLUMN IF NOT EXISTS \"Notas\" character varying(500)",
+        "ALTER TABLE \"MetasAhorro\" ADD COLUMN IF NOT EXISTS \"Orden\" integer NOT NULL DEFAULT 0",
+
+        // SnapshotsPatrimoniales
+        "ALTER TABLE \"SnapshotsPatrimoniales\" ADD COLUMN IF NOT EXISTS \"UsuarioId\" text NOT NULL DEFAULT ''",
+        "ALTER TABLE \"SnapshotsPatrimoniales\" ADD COLUMN IF NOT EXISTS \"Fecha\" timestamp without time zone NOT NULL DEFAULT now()",
+        "ALTER TABLE \"SnapshotsPatrimoniales\" ADD COLUMN IF NOT EXISTS \"Activos\" double precision NOT NULL DEFAULT 0",
+        "ALTER TABLE \"SnapshotsPatrimoniales\" ADD COLUMN IF NOT EXISTS \"Pasivos\" double precision NOT NULL DEFAULT 0",
+        "ALTER TABLE \"SnapshotsPatrimoniales\" ADD COLUMN IF NOT EXISTS \"PatrimonioNeto\" double precision NOT NULL DEFAULT 0",
+        "ALTER TABLE \"SnapshotsPatrimoniales\" ADD COLUMN IF NOT EXISTS \"Notas\" character varying(300)",
+
+        // ConfigUsuarios
+        "ALTER TABLE \"ConfigUsuarios\" ADD COLUMN IF NOT EXISTS \"UsuarioId\" text NOT NULL DEFAULT ''",
+        "ALTER TABLE \"ConfigUsuarios\" ADD COLUMN IF NOT EXISTS \"DiezmoPct\" double precision NOT NULL DEFAULT 0.10",
+        "ALTER TABLE \"ConfigUsuarios\" ADD COLUMN IF NOT EXISTS \"MetaNecesidadesPct\" double precision NOT NULL DEFAULT 0.50",
+        "ALTER TABLE \"ConfigUsuarios\" ADD COLUMN IF NOT EXISTS \"MetaDeseosPct\" double precision NOT NULL DEFAULT 0.30",
+        "ALTER TABLE \"ConfigUsuarios\" ADD COLUMN IF NOT EXISTS \"MetaDeudaPct\" double precision NOT NULL DEFAULT 0",
+        "ALTER TABLE \"ConfigUsuarios\" ADD COLUMN IF NOT EXISTS \"MetaAhorroPct\" double precision NOT NULL DEFAULT 0.20",
+        "ALTER TABLE \"ConfigUsuarios\" ADD COLUMN IF NOT EXISTS \"FondoEmergenciaMeses\" integer NOT NULL DEFAULT 4",
+        "ALTER TABLE \"ConfigUsuarios\" ADD COLUMN IF NOT EXISTS \"MetaAhorroMinimoPct\" double precision NOT NULL DEFAULT 0.20",
+        "ALTER TABLE \"ConfigUsuarios\" ADD COLUMN IF NOT EXISTS \"MetaAhorroOptimoPct\" double precision NOT NULL DEFAULT 0.30",
+        "ALTER TABLE \"ConfigUsuarios\" ADD COLUMN IF NOT EXISTS \"CategoriaDiezmoId\" integer",
+        "ALTER TABLE \"ConfigUsuarios\" ADD COLUMN IF NOT EXISTS \"SnapshotAutomatico\" boolean NOT NULL DEFAULT true",
+        "ALTER TABLE \"ConfigUsuarios\" ADD COLUMN IF NOT EXISTS \"SnapshotDia\" integer NOT NULL DEFAULT 1",
+
+        // AspNetUsers (Usuario agrega estos 2 campos sobre IdentityUser)
+        "ALTER TABLE \"AspNetUsers\" ADD COLUMN IF NOT EXISTS \"Nombre\" text NOT NULL DEFAULT ''",
+        "ALTER TABLE \"AspNetUsers\" ADD COLUMN IF NOT EXISTS \"FechaRegistro\" timestamp without time zone NOT NULL DEFAULT now()",
+    };
+
+    foreach (var sql in alteraciones)
+    {
+        try
+        {
+            await bd.Database.ExecuteSqlRawAsync(sql);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[EnsureColumnasPostgres] No se pudo ejecutar '{sql}': {ex.Message}");
+        }
+    }
+}
 
 // Migración de una sola vez: Ingreso (tabla separada, ya no se usa) → Movimiento
 // con categoría de pilar Ingreso. Idempotente — una vez migradas, la tabla Ingresos
