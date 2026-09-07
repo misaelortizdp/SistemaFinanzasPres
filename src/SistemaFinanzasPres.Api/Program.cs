@@ -382,16 +382,31 @@ static async Task EnsureColumnasAsync(BaseDatosContexto bd, string proveedor)
         "ALTER TABLE \"AspNetUsers\" ADD COLUMN \"FechaRegistro\" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP",
     };
 
-    foreach (var sql in alteraciones)
+    // Se ejecuta contra la conexión ADO.NET directa (no bd.Database.ExecuteSqlRawAsync) para
+    // que el caso esperado "la columna ya existe" no dispare el logging de comandos fallidos
+    // de EF Core (fail: + stack trace) en cada arranque — es ruido, no un error real.
+    var conexion = bd.Database.GetDbConnection();
+    var yaEstabaAbierta = conexion.State == System.Data.ConnectionState.Open;
+    if (!yaEstabaAbierta) await conexion.OpenAsync();
+    try
     {
-        try
+        foreach (var sql in alteraciones)
         {
-            await bd.Database.ExecuteSqlRawAsync(sql);
+            try
+            {
+                using var comando = conexion.CreateCommand();
+                comando.CommandText = sql;
+                await comando.ExecuteNonQueryAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[EnsureColumnas] No se pudo ejecutar '{sql}': {ex.Message}");
+            }
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[EnsureColumnas] No se pudo ejecutar '{sql}': {ex.Message}");
-        }
+    }
+    finally
+    {
+        if (!yaEstabaAbierta) await conexion.CloseAsync();
     }
 }
 
