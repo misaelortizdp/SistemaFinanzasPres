@@ -22,7 +22,6 @@ Thumbs.db
 ## Local secrets / outputs
 *.pfx
 *.snk
-**/Properties/launchSettings.json
 publish/
 PublishProfiles/
 
