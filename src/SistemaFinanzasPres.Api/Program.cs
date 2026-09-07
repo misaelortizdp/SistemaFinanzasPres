@@ -125,7 +125,7 @@ using (var scope = app.Services.CreateScope())
 {
     var bd = scope.ServiceProvider.GetRequiredService<BaseDatosContexto>();
     bd.Database.EnsureCreated();
-    await EnsureColumnasPostgresAsync(bd, proveedor);
+    await EnsureColumnasAsync(bd, proveedor);
     await MigrarIngresosAMovimientosAsync(bd);
 }
 
@@ -161,17 +161,19 @@ app.Run();
 // EnsureCreated() solo crea el esquema completo si la base de datos no tiene NINGUNA
 // tabla — en una base ya inicializada, agregar una columna a un modelo (ej. Deuda.AbonoExtra,
 // ConfigUsuario.MetaDeudaPct) nunca se propaga sola y la columna queda faltante para siempre.
-// Esto lo corrige de forma segura e idempotente: ADD COLUMN IF NOT EXISTS no falla si la
-// columna ya existe, así que es seguro correrlo en cada arranque. Solo aplica a Postgres —
-// SQLite local se recrea desde cero (EnsureCreated) con el modelo completo cada vez que se
-// borra el archivo .db, así que nunca sufre este desfase.
-static async Task EnsureColumnasPostgresAsync(BaseDatosContexto bd, string proveedor)
+// Esto pasa igual en SQLite local que en Postgres: cualquier finanzas.db creado antes de que
+// el modelo tuviera esa columna se queda desactualizado para siempre (EnsureCreated no migra).
+// Se corrige de forma segura e idempotente para ambos proveedores: en Postgres con
+// ADD COLUMN IF NOT EXISTS; en SQLite (que no soporta ese IF NOT EXISTS) intentando el
+// ADD COLUMN y descartando el error de "columna duplicada" si ya existía. Seguro de correr
+// en cada arranque.
+static async Task EnsureColumnasAsync(BaseDatosContexto bd, string proveedor)
 {
-    if (!string.Equals(proveedor, "Postgres", StringComparison.OrdinalIgnoreCase) &&
-        !string.Equals(proveedor, "PostgreSQL", StringComparison.OrdinalIgnoreCase))
-        return;
+    var esPostgres = string.Equals(proveedor, "Postgres", StringComparison.OrdinalIgnoreCase) ||
+                      string.Equals(proveedor, "PostgreSQL", StringComparison.OrdinalIgnoreCase);
 
-    string[] alteraciones =
+    string[] alteraciones = esPostgres
+    ? new[]
     {
         // Categorias
         "ALTER TABLE \"Categorias\" ADD COLUMN IF NOT EXISTS \"UsuarioId\" text NOT NULL DEFAULT ''",
@@ -274,6 +276,110 @@ static async Task EnsureColumnasPostgresAsync(BaseDatosContexto bd, string prove
         // AspNetUsers (Usuario agrega estos 2 campos sobre IdentityUser)
         "ALTER TABLE \"AspNetUsers\" ADD COLUMN IF NOT EXISTS \"Nombre\" text NOT NULL DEFAULT ''",
         "ALTER TABLE \"AspNetUsers\" ADD COLUMN IF NOT EXISTS \"FechaRegistro\" timestamp without time zone NOT NULL DEFAULT now()",
+    }
+    : new[]
+    {
+        // Categorias
+        "ALTER TABLE \"Categorias\" ADD COLUMN \"UsuarioId\" TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE \"Categorias\" ADD COLUMN \"Nombre\" TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE \"Categorias\" ADD COLUMN \"Tipo\" INTEGER NOT NULL DEFAULT 1",
+        "ALTER TABLE \"Categorias\" ADD COLUMN \"Color\" TEXT",
+        "ALTER TABLE \"Categorias\" ADD COLUMN \"Icono\" TEXT",
+        "ALTER TABLE \"Categorias\" ADD COLUMN \"Orden\" INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE \"Categorias\" ADD COLUMN \"Activa\" INTEGER NOT NULL DEFAULT 1",
+
+        // Cuentas
+        "ALTER TABLE \"Cuentas\" ADD COLUMN \"UsuarioId\" TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE \"Cuentas\" ADD COLUMN \"Nombre\" TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE \"Cuentas\" ADD COLUMN \"Saldo\" REAL NOT NULL DEFAULT 0",
+        "ALTER TABLE \"Cuentas\" ADD COLUMN \"Orden\" INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE \"Cuentas\" ADD COLUMN \"Activa\" INTEGER NOT NULL DEFAULT 1",
+
+        // Movimientos
+        "ALTER TABLE \"Movimientos\" ADD COLUMN \"UsuarioId\" TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE \"Movimientos\" ADD COLUMN \"Fecha\" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP",
+        "ALTER TABLE \"Movimientos\" ADD COLUMN \"Concepto\" TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE \"Movimientos\" ADD COLUMN \"CategoriaId\" INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE \"Movimientos\" ADD COLUMN \"CuentaId\" INTEGER",
+        "ALTER TABLE \"Movimientos\" ADD COLUMN \"Monto\" REAL NOT NULL DEFAULT 0",
+        "ALTER TABLE \"Movimientos\" ADD COLUMN \"Notas\" TEXT",
+
+        // Ingresos (tabla legada — se mantiene solo para la migración de una sola vez)
+        "ALTER TABLE \"Ingresos\" ADD COLUMN \"UsuarioId\" TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE \"Ingresos\" ADD COLUMN \"Fecha\" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP",
+        "ALTER TABLE \"Ingresos\" ADD COLUMN \"Concepto\" TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE \"Ingresos\" ADD COLUMN \"Monto\" REAL NOT NULL DEFAULT 0",
+        "ALTER TABLE \"Ingresos\" ADD COLUMN \"Fuente\" TEXT NOT NULL DEFAULT 'Salario'",
+        "ALTER TABLE \"Ingresos\" ADD COLUMN \"CuentaId\" INTEGER",
+        "ALTER TABLE \"Ingresos\" ADD COLUMN \"Notas\" TEXT",
+        "ALTER TABLE \"Ingresos\" ADD COLUMN \"EsRecurrente\" INTEGER NOT NULL DEFAULT 0",
+
+        // LineasPresupuesto
+        "ALTER TABLE \"LineasPresupuesto\" ADD COLUMN \"UsuarioId\" TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE \"LineasPresupuesto\" ADD COLUMN \"CategoriaId\" INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE \"LineasPresupuesto\" ADD COLUMN \"Anio\" INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE \"LineasPresupuesto\" ADD COLUMN \"Mes\" INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE \"LineasPresupuesto\" ADD COLUMN \"Monto\" REAL NOT NULL DEFAULT 0",
+
+        // Deudas
+        "ALTER TABLE \"Deudas\" ADD COLUMN \"UsuarioId\" TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE \"Deudas\" ADD COLUMN \"Nombre\" TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE \"Deudas\" ADD COLUMN \"MontoOriginal\" REAL NOT NULL DEFAULT 0",
+        "ALTER TABLE \"Deudas\" ADD COLUMN \"SaldoActual\" REAL NOT NULL DEFAULT 0",
+        "ALTER TABLE \"Deudas\" ADD COLUMN \"TasaInteres\" REAL NOT NULL DEFAULT 0",
+        "ALTER TABLE \"Deudas\" ADD COLUMN \"PagoMinimo\" REAL NOT NULL DEFAULT 0",
+        "ALTER TABLE \"Deudas\" ADD COLUMN \"AbonoExtra\" REAL NOT NULL DEFAULT 0",
+        "ALTER TABLE \"Deudas\" ADD COLUMN \"DiaPago\" INTEGER NOT NULL DEFAULT 1",
+        "ALTER TABLE \"Deudas\" ADD COLUMN \"Activa\" INTEGER NOT NULL DEFAULT 1",
+        "ALTER TABLE \"Deudas\" ADD COLUMN \"FechaCreacion\" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP",
+        "ALTER TABLE \"Deudas\" ADD COLUMN \"Notas\" TEXT",
+        "ALTER TABLE \"Deudas\" ADD COLUMN \"CategoriaId\" INTEGER",
+
+        // PagosDeuda
+        "ALTER TABLE \"PagosDeuda\" ADD COLUMN \"DeudaId\" INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE \"PagosDeuda\" ADD COLUMN \"Fecha\" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP",
+        "ALTER TABLE \"PagosDeuda\" ADD COLUMN \"Monto\" REAL NOT NULL DEFAULT 0",
+        "ALTER TABLE \"PagosDeuda\" ADD COLUMN \"PorcionInteres\" REAL NOT NULL DEFAULT 0",
+        "ALTER TABLE \"PagosDeuda\" ADD COLUMN \"PorcionCapital\" REAL NOT NULL DEFAULT 0",
+        "ALTER TABLE \"PagosDeuda\" ADD COLUMN \"Notas\" TEXT",
+
+        // MetasAhorro
+        "ALTER TABLE \"MetasAhorro\" ADD COLUMN \"UsuarioId\" TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE \"MetasAhorro\" ADD COLUMN \"Nombre\" TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE \"MetasAhorro\" ADD COLUMN \"Prioridad\" TEXT NOT NULL DEFAULT 'MEDIA'",
+        "ALTER TABLE \"MetasAhorro\" ADD COLUMN \"Objetivo\" REAL NOT NULL DEFAULT 0",
+        "ALTER TABLE \"MetasAhorro\" ADD COLUMN \"Acumulado\" REAL NOT NULL DEFAULT 0",
+        "ALTER TABLE \"MetasAhorro\" ADD COLUMN \"FechaLimite\" TEXT",
+        "ALTER TABLE \"MetasAhorro\" ADD COLUMN \"AporteMensualPlaneado\" REAL NOT NULL DEFAULT 0",
+        "ALTER TABLE \"MetasAhorro\" ADD COLUMN \"Activa\" INTEGER NOT NULL DEFAULT 1",
+        "ALTER TABLE \"MetasAhorro\" ADD COLUMN \"Notas\" TEXT",
+        "ALTER TABLE \"MetasAhorro\" ADD COLUMN \"Orden\" INTEGER NOT NULL DEFAULT 0",
+
+        // SnapshotsPatrimoniales
+        "ALTER TABLE \"SnapshotsPatrimoniales\" ADD COLUMN \"UsuarioId\" TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE \"SnapshotsPatrimoniales\" ADD COLUMN \"Fecha\" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP",
+        "ALTER TABLE \"SnapshotsPatrimoniales\" ADD COLUMN \"Activos\" REAL NOT NULL DEFAULT 0",
+        "ALTER TABLE \"SnapshotsPatrimoniales\" ADD COLUMN \"Pasivos\" REAL NOT NULL DEFAULT 0",
+        "ALTER TABLE \"SnapshotsPatrimoniales\" ADD COLUMN \"PatrimonioNeto\" REAL NOT NULL DEFAULT 0",
+        "ALTER TABLE \"SnapshotsPatrimoniales\" ADD COLUMN \"Notas\" TEXT",
+
+        // ConfigUsuarios
+        "ALTER TABLE \"ConfigUsuarios\" ADD COLUMN \"UsuarioId\" TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE \"ConfigUsuarios\" ADD COLUMN \"DiezmoPct\" REAL NOT NULL DEFAULT 0.10",
+        "ALTER TABLE \"ConfigUsuarios\" ADD COLUMN \"MetaNecesidadesPct\" REAL NOT NULL DEFAULT 0.50",
+        "ALTER TABLE \"ConfigUsuarios\" ADD COLUMN \"MetaDeseosPct\" REAL NOT NULL DEFAULT 0.30",
+        "ALTER TABLE \"ConfigUsuarios\" ADD COLUMN \"MetaDeudaPct\" REAL NOT NULL DEFAULT 0",
+        "ALTER TABLE \"ConfigUsuarios\" ADD COLUMN \"MetaAhorroPct\" REAL NOT NULL DEFAULT 0.20",
+        "ALTER TABLE \"ConfigUsuarios\" ADD COLUMN \"FondoEmergenciaMeses\" INTEGER NOT NULL DEFAULT 4",
+        "ALTER TABLE \"ConfigUsuarios\" ADD COLUMN \"MetaAhorroMinimoPct\" REAL NOT NULL DEFAULT 0.20",
+        "ALTER TABLE \"ConfigUsuarios\" ADD COLUMN \"MetaAhorroOptimoPct\" REAL NOT NULL DEFAULT 0.30",
+        "ALTER TABLE \"ConfigUsuarios\" ADD COLUMN \"CategoriaDiezmoId\" INTEGER",
+        "ALTER TABLE \"ConfigUsuarios\" ADD COLUMN \"SnapshotAutomatico\" INTEGER NOT NULL DEFAULT 1",
+        "ALTER TABLE \"ConfigUsuarios\" ADD COLUMN \"SnapshotDia\" INTEGER NOT NULL DEFAULT 1",
+
+        // AspNetUsers (Usuario agrega estos 2 campos sobre IdentityUser)
+        "ALTER TABLE \"AspNetUsers\" ADD COLUMN \"Nombre\" TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE \"AspNetUsers\" ADD COLUMN \"FechaRegistro\" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP",
     };
 
     foreach (var sql in alteraciones)
@@ -284,7 +390,7 @@ static async Task EnsureColumnasPostgresAsync(BaseDatosContexto bd, string prove
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[EnsureColumnasPostgres] No se pudo ejecutar '{sql}': {ex.Message}");
+            Console.WriteLine($"[EnsureColumnas] No se pudo ejecutar '{sql}': {ex.Message}");
         }
     }
 }
