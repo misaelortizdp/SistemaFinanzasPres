@@ -1,13 +1,13 @@
 # Plan de Mejoras UX - SistemaFinanzasPres
 
 ## 📊 Estado General
-- **Plataforma prioritaria**: Web (React + TypeScript)
+- **Plataforma prioritaria**: Web (React + TypeScript), en paridad con móvil (MAUI)
 - **Framework**: React 18 + Vite + Tailwind + shadcn/ui
 - **Backend**: API .NET 9 + EF Core + JWT
-- **Fase actual**: Fase 1 - Mejoras UX Críticas
+- **Fase actual**: Fase 1 completa. Fases 2-5 revisadas y filtradas contra `CLAUDE.md` (ver notas 2026-09-07 en cada lote) — no todo lo listado abajo se va a construir tal cual.
 
 ## 🎯 Objetivo
-Mejorar la experiencia de usuario de la aplicación web de finanzas personales, implementando mejoras en 7 fases priorizadas.
+Mejorar la experiencia de usuario de la aplicación web de finanzas personales. **Desde 2026-09, la prioridad la define `CLAUDE.md`** (utilidad real por encima de exhaustividad, pocas pantallas, sugerir en vez de solo mostrar) — este documento queda como registro histórico de ideas, no como backlog a ejecutar completo.
 
 ---
 
@@ -88,71 +88,71 @@ Mejorar la experiencia de usuario de la aplicación web de finanzas personales, 
 - [x] Mecanismos de reintento para API calls
 - [x] Estados de error con acciones sugeridas
 
-### ⏳ LOTE 5: Onboarding Básico
+### ⏳ LOTE 5: Onboarding Básico (RE-EVALUADO 2026-09-07 — ver notas)
 **Prioridad**: ALTA | **Fase**: 1.4
 **Objetivo**: Guiar a usuarios nuevos
 
 **Tareas**:
-- [ ] Crear wizard de bienvenida:
-  - [ ] Paso 1: Configuración de perfil
-  - [ ] Paso 2: Porcentajes 50/30/20
-  - [ ] Paso 3: Categorías
-  - [ ] Paso 4: Primera cuenta
-  - [ ] Paso 5: Tour del dashboard
-- [ ] Estados vacíos con CTAs en todas las páginas
-- [ ] Sistema de tooltips contextuales
-- [ ] Indicadores de ayuda (?)
+- [ ] Wizard de bienvenida de 5 pasos — **descartado**: un wizard multi-paso contradice "intuitivo por encima de todo" y "pocas pantallas" (CLAUDE.md). Reemplazar por lo de abajo.
+- [ ] **(Nuevo candidato, reemplaza el wizard)** Sembrar categorías por defecto (por pilar: Necesidad/Deseo/Ahorro/Primer Fruto) + una cuenta "Efectivo" al registrar un usuario nuevo — hoy un usuario nuevo arranca con cero categorías/cuentas y tiene que crearlas todas a mano antes de poder registrar un solo gasto. Esto sí es friction real (contradice "poco tiempo invertido, resultado claro") y se resuelve sin pantalla nueva, solo con un seed en el registro.
+- [ ] Estados vacíos con CTAs en todas las páginas — vale la pena, bajo esfuerzo, ayuda a "intuitivo" (ej. "aún no tienes categorías, créalas aquí" en vez de una tabla en blanco)
+- [ ] Sistema de tooltips contextuales — **descartado**: si hace falta explicar una pantalla con tooltips, la pantalla está mal diseñada (CLAUDE.md ppio. 7) — hay que simplificar la UI, no anotarla
+- [ ] Indicadores de ayuda (?) — **descartado**, mismo motivo que tooltips
 
-### ⏳ LOTE 6: Mejoras al Dashboard
+### 🟡 LOTE 6: Mejoras al Dashboard (PARCIAL — ver notas 2026-09-07)
 **Prioridad**: MEDIA | **Fase**: 2.1
 **Objetivo**: Dashboard más escaneable y personalizable
 
 **Tareas**:
-- [ ] Jerarquía visual mejorada
-- [ ] Secciones colapsables/expandibles
-- [ ] Indicadores de tendencia vs mes anterior
-- [ ] Botón de acción flotante (FAB)
-- [ ] Widgets personalizables
-- [ ] Modo oscuro
+- [x] Jerarquía visual mejorada — Panel reordenado con sugerencias accionables primero (Fase 2 del plan de mejoras, sesión 2026-09)
+- [x] Secciones colapsables/expandibles — ya resuelto en LOTE 3 (responsive mobile)
+- [x] Indicadores de tendencia vs mes anterior — superado: se plegó Tendencias completo en Panel (gráfica de línea 6 meses, mejor/peor mes, promedios)
+- [x] Botón de acción flotante (FAB) — implementado (mismo botón que LOTE 7, ver abajo)
+- [ ] Widgets personalizables — **descartado**: contradice la visión de producto (CLAUDE.md: "pocas pantallas", "no exhaustividad"). Un dashboard configurable agrega complejidad que nadie pidió.
+- [ ] Modo oscuro — **no prioritario**: es cosmético, no ayuda a decidir nada (CLAUDE.md ppio. 3). Nota: hoy queda scaffolding muerto (`darkMode:["class"]` en tailwind.config + clases `dark:` sueltas en 4 páginas) sin ningún toggle que las active — si se retoma, o se termina bien (toggle + variables `.dark`) o se limpia esa scaffolding suelta.
 
-### ⏳ LOTE 7: Entrada Rápida de Gastos
+### 🟡 LOTE 7: Entrada Rápida de Gastos (PARCIAL — completado 2026-09-07)
 **Prioridad**: MEDIA | **Fase**: 3.1
 **Objetivo**: Reducir fricción al agregar gastos
 
 **Tareas**:
-- [ ] Modal de gasto rápido
-- [ ] Pre-llenado inteligente
-- [ ] Categorías recientes primero
-- [ ] Atajos de teclado
-- [ ] Función duplicar transacción
-- [ ] Plantillas de gastos recurrentes
+- [x] Modal de gasto rápido — botón flotante (FAB) en web (`BotonAccionRapida.tsx`, global en `Layout.tsx`) y en móvil (tab Dashboard, MAUI)
+- [~] Pre-llenado inteligente — parcial: el concepto se autocompleta con el nombre de la categoría si se deja vacío; no hay predicción de monto/categoría
+- [x] Categorías recientes primero — chips de las categorías más usadas ese mes (por frecuencia), en ambas plataformas
+- [ ] Atajos de teclado — **no prioritario**: uso ocasional (segundos al día), no justifica la complejidad
+- [ ] Función duplicar transacción — candidato real si en la práctica se repiten gastos idénticos seguido; no construir preventivo, solo si se siente la fricción
+- [ ] Plantillas de gastos recurrentes — **descartado por ahora**: se solapa con "categorías recientes primero", que ya resuelve la mayoría del caso de uso con menos superficie
 
-### ⏳ LOTE 8: Búsqueda y Filtrado Avanzado
+### ⏳ LOTE 8: Búsqueda y Filtrado Avanzado (RE-EVALUADO 2026-09-07 — ver notas)
 **Prioridad**: MEDIA | **Fase**: 3.3
 **Objetivo**: Encontrar información rápidamente
 
-**Tareas**:
-- [ ] Selector de rango de fechas
-- [ ] Filtro multi-categoría
-- [ ] Filtro de rango de monto
-- [ ] Guardar presets de filtro
-- [ ] Búsqueda global
+**Nota**: Movimientos ya tiene hoy búsqueda de texto libre (concepto + categoría + notas) y filtro por categoría — cubre buena parte de lo que este lote pedía.
 
-### ⏳ LOTE 9: Completar Páginas Faltantes
+**Tareas**:
+- [ ] Selector de rango de fechas — candidato real: hoy solo se navega mes a mes, no hay forma de ver p.ej. "últimos 3 meses" o un rango custom. Ayuda a buscar/decidir, vale la pena si se siente esa limitación.
+- [ ] Filtro multi-categoría — **descartado por ahora**: el filtro de una categoría + búsqueda de texto ya cubre casi todo; multi-select es complejidad de UI para un beneficio marginal
+- [ ] Filtro de rango de monto — **descartado**: uso poco frecuente, no justifica la superficie (CLAUDE.md: "no exhaustividad")
+- [ ] Guardar presets de filtro — **descartado**: sobre-ingeniería para el volumen de datos de un usuario individual
+- [ ] Búsqueda global — ya resuelto: la búsqueda de texto actual en Movimientos ya busca por concepto/categoría/notas
+
+### ✅ LOTE 9: Completar Páginas Faltantes (COMPLETADO — vía trabajo posterior, no como estaba planteado originalmente)
 **Prioridad**: ALTA | **Fase**: 5.1
 **Objetivo**: Paridad funcional web-MAUI
 
 **Tareas**:
-- [ ] PaginaDeudas: Implementación completa
-- [ ] PaginaMetas: Implementación completa
-- [ ] PaginaPatrimonio: Desglose activos/pasivos
-- [ ] PaginaTendencias: Gráficas avanzadas
+- [x] PaginaDeudas: Implementación completa — CRUD + historial de pagos + meses-para-liquidar/prioridad avalancha siempre visibles (el simulador que tenía se eliminó, esos cálculos ahora son columnas de la tabla)
+- [x] PaginaMetas: Implementación completa — CRUD + proyección de meses + aporte mensual recomendado
+- [x] PaginaPatrimonio: Desglose activos/pasivos — snapshots mensuales automáticos + balance histórico
+- [x] PaginaTendencias: Gráficas avanzadas — no quedó como página aparte: se plegó dentro de Panel (misma filosofía que ya se había aplicado al plegar KPIs), con gráfica de línea de 6 meses + mejor/peor mes + promedios
 
-### ⏳ LOTE 10: PWA y Soporte Offline
+### ⛔ LOTE 10: PWA y Soporte Offline (DESCARTADO 2026-09-07)
 **Prioridad**: MEDIA | **Fase**: 5.2
 **Objetivo**: Funcionalidad offline
 
-**Tareas**:
+**Nota**: la app móvil MAUI ya es offline-first (SQLite local) — ese caso de uso ("necesito esto sin internet") ya está cubierto por la otra plataforma. Construir toda esta capacidad de nuevo en web (service worker + IndexedDB + sync) es una inversión grande para una necesidad que el otro producto ya resuelve. No se rescata salvo que aparezca una razón concreta de negocio para tenerlo también en web.
+
+**Tareas** (sin acción):
 - [ ] Convertir a PWA
 - [ ] Service worker
 - [ ] IndexedDB para persistencia
@@ -303,9 +303,34 @@ Mejorar la experiencia de usuario de la aplicación web de finanzas personales, 
   - Commit 2: feat(errores): aplicar validación y mejor manejo de errores en PaginaCuentas
   - Commit 3: feat(errores): completar LOTE 4 - aplicar mejoras a Presupuesto y corregir errores
 
+### 2026-09 (sesión de mejoras de producto, filtradas por CLAUDE.md)
+- Se definió una visión de producto explícita (ver `CLAUDE.md`), con principios concretos
+  ("utilidad real, no exhaustividad", "pocas pantallas", "debe sugerir, no solo mostrar") que
+  desde ahora filtran qué se construye de este plan.
+- Bug real encontrado y corregido: Ingresos vivía separado de Movimientos y el Panel/KPIs
+  calculaban el ingreso solo desde la tabla Ingresos — unificado en Movimientos.
+- Deudas: simulador (LOTE original no lo pedía así, pero mismo espíritu de LOTE 9) reemplazado
+  por meses-para-liquidar/prioridad avalancha siempre visibles en la tabla principal.
+- Tendencias (página aparte) plegada en Panel — gráfica de línea 6 meses, mejor/peor mes,
+  promedios. Resuelve LOTE 9 (Fase 2.2) y el ítem de tendencia de LOTE 6.
+- Navegación reestructurada de 11 a 5 pantallas (Configuración consolida Cuentas/Categorías/
+  Metas/Patrimonio/% pilares/Diezmo/Fondo de emergencia).
+- Motor de sugerencias accionables en Panel (balance negativo, pilares sobre meta, Ahorro bajo
+  meta, proyección de déficit, gastos hormiga) — la app ahora sugiere, no solo reporta.
+- Bug real encontrado y corregido (a nivel pilar y luego categoría): la meta de Ahorro es un
+  mínimo a alcanzar, no un techo — el estado se mostraba invertido.
+- Bug de producción corregido: columnas agregadas al modelo después de la creación inicial de
+  la BD nunca se propagaban (`EnsureCreated()` no migra) — se agregó auto-reparación de
+  columnas faltantes, primero en Postgres (producción) y luego también en SQLite (local).
+- **LOTE 7 implementado (parcial)**: botón de gasto rápido (FAB) en web y móvil, con categorías
+  recientes primero — ver detalle en LOTE 7 arriba.
+- Este documento se revisó completo contra la visión de producto: ver notas por lote arriba
+  (marcadas 2026-09-07) para qué se descartó y por qué.
+
 ---
 
-**Última actualización**: 2026-07-21  
-**Lote completado**: LOTE 4 ✅  
-**Lote actual**: LOTE 5 (Onboarding Básico)  
-**Progreso general**: 4/10 lotes (40%)
+**Última actualización**: 2026-09-07
+**Lotes completados**: LOTE 1, 2, 3, 4, 9 ✅ · LOTE 6 ✅ (dentro del alcance filtrado — widgets personalizables y modo oscuro descartados, ver notas)
+**Parcial**: LOTE 7 🟡 (núcleo — modal + categorías recientes — hecho; atajos/plantillas descartados, duplicar transacción condicionado a necesidad real)
+**Pendientes reales** (alcance recortado tras el filtro CLAUDE.md): LOTE 5 (seed de categorías/cuenta por defecto + estados vacíos con CTA) · LOTE 8 (solo selector de rango de fechas)
+**Descartado**: LOTE 10 (PWA/offline — ya lo cubre la app móvil MAUI)
